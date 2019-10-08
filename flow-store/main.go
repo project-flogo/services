@@ -49,19 +49,10 @@ func main() {
 
 	//New Apis V1
 	flowRouter.GET("/v1/flows", ListAllFlow)
-	flowRouter.GET("/flows", ListAllFlow)
-
 	flowRouter.GET("/v1/flows/:id", GetFlow)
-	flowRouter.GET("/flows/:id", GetFlow)
-
 	flowRouter.GET("/v1/flows/:id/metadata", GetFlowMetadata)
-	flowRouter.GET("/flows/:id/metadata", GetFlowMetadata)
-
 	flowRouter.POST("/v1/flows", SaveFlow)
-	flowRouter.POST("/flows", SaveFlow)
-
 	flowRouter.DELETE("/v1/flows/:id", DeleteFlow)
-	flowRouter.DELETE("/flows/:id", DeleteFlow)
 
 	log.Info("Started server on localhost:" + *Port)
 	http.ListenAndServe(":"+*Port, &FlowServer{flowRouter})
