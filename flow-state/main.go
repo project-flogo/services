@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/project-flogo/core/support"
 	"github.com/project-flogo/core/support/log"
+	"github.com/project-flogo/core/support/service"
 	"github.com/project-flogo/services/flow-state/server/rest"
 )
 
@@ -19,18 +19,23 @@ func init() {
 
 func main() {
 
-	logger :=  log.ChildLogger(log.RootLogger(), "FlowStateService")
+	logger := log.ChildLogger(log.RootLogger(), "FlowStateService")
 	//for new use REST StateService
-	cfg := &support.ServiceConfig{
-		Name:     "FlowStateService",
-		Enabled:  true,
-		Settings: map[string]string{rest.SettingPort:*port},
+	cfg := &service.Config{
+		Settings: map[string]interface{}{rest.SettingPort: *port, rest.SettingExposeRecorder:true},
 	}
 
 	logger.Info("Starting...")
-	service := rest.NewStateService(cfg,logger)
 
-	err := service.Start()
+	sf := &rest.StateServiceFactory{}
+
+	s, err := sf.NewService(cfg)
+	if err != nil {
+		logger.Errorf("Failed to Flow State Service: %v\n", err)
+		os.Exit(1)
+	}
+
+	err = s.Start()
 	if err != nil {
 		logger.Errorf("Failed to Flow State Service: %v\n", err)
 		os.Exit(1)
@@ -42,7 +47,7 @@ func main() {
 
 	code := <-exitChan
 
-	_ = service.Stop()
+	_ = s.Stop()
 
 	os.Exit(code)
 }
@@ -69,5 +74,3 @@ func setupSignalHandling() chan int {
 	}
 	return exitChan
 }
-
-

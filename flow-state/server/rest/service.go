@@ -2,16 +2,16 @@ package rest
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"strings"
+	"strconv"
 
-	"github.com/project-flogo/core/support"
+	"github.com/julienschmidt/httprouter"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/support/log"
+	"github.com/project-flogo/core/support/service"
+	"github.com/rs/cors"
 )
 
 const (
-	CorsPrefix = "STATE_SERVICE"
-
 	SettingPort           = "port"
 	SettingExposeRecorder = "exposeRecorder"
 	SettingEnableTLS      = "enableTLS"
@@ -19,22 +19,32 @@ const (
 	SettingKeyFile        = "keyFile"
 )
 
+func init() {
+	_ = service.RegisterFactory(&StateServiceFactory{})
+}
+
+type StateServiceFactory struct {
+}
+
+func (s *StateServiceFactory) NewService(config *service.Config) (service.Service, error) {
+	ss := &StateService{}
+	err := ss.init(config.Settings)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo switch this logger
+	ss.logger = log.RootLogger()
+
+	return ss, nil
+}
+
 // StateService is an implementation of StateService service
 // that can access flows via URI
 type StateService struct {
 	server  *Server
 	logger  log.Logger
 	enabled bool
-}
-
-// NewRemoteStateService creates a new StateService
-func NewStateService(config *support.ServiceConfig, logger log.Logger) *StateService {
-
-	recorder := &StateService{enabled: config.Enabled, logger:logger}
-	_ = recorder.init(config.Settings)
-	//todo handle error
-
-	return recorder
 }
 
 func (ss *StateService) Name() string {
@@ -56,40 +66,54 @@ func (ss *StateService) Stop() error {
 }
 
 // Init implements services.StateServiceService.Init()
-func (ss *StateService) init(settings map[string]string) error {
+func (ss *StateService) init(settings map[string]interface{}) error {
 
-	port, set := settings[SettingPort]
+	sPort, set := settings[SettingPort]
 	if !set {
-		return fmt.Errorf("FlowStateService: required setting 'port' not set")
+		return fmt.Errorf("StateRecorder: required setting 'port' not set")
+	}
+	port, err := coerce.ToInt(sPort)
+	if err != nil {
+		return fmt.Errorf("StateRecorder: invalid port '%v'", sPort)
 	}
 
 	router := httprouter.New()
 
 	exposeRecorder := false
-	if expose, set := settings[SettingExposeRecorder]; set {
-		exposeRecorder = strings.EqualFold("true", expose)
+	if sExpose, set := settings[SettingExposeRecorder]; set {
+		exposeRecorder, _ = coerce.ToBool(sExpose)
 	}
 
-	AppendEndpoints(router, ss.logger, true, exposeRecorder)
-
-	addr := ":" + strings.TrimSpace(port)
+	AppendEndpoints(router, ss.logger, exposeRecorder)
 
 	var options []func(*Server)
 
 	enableTLS := false
-	if strEnableTLS, set := settings[SettingEnableTLS]; set {
-		enableTLS = strings.EqualFold("true", strEnableTLS)
+	if sEnableTLS, set := settings[SettingEnableTLS]; set {
+		enableTLS, _ = coerce.ToBool(sEnableTLS)
 	}
 
 	if enableTLS {
-		certFile, _ := settings[SettingCertFile]
-		keyFile, _ := settings[SettingKeyFile]
+		certFile := ""
+		if sCertFile, set := settings[SettingCertFile]; set {
+			certFile, _ = coerce.ToString(sCertFile)
+		}
+		keyFile := ""
+		if sKeyFile, set := settings[SettingKeyFile]; set {
+			keyFile, _ = coerce.ToString(sKeyFile)
+		}
+
 		options = append(options, TLS(certFile, keyFile))
 	}
 
 	options = append(options, Logger(ss.logger))
 
-	server, err := newServer(addr, router, options...)
+	c := cors.New(cors.Options{
+		AllowCredentials: true,
+		AllowedMethods: []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+	})
+
+	server, err := newServer(":" + strconv.Itoa(port), c.Handler(router), options...)
 	if err != nil {
 		return err
 	}

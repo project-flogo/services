@@ -7,6 +7,10 @@ import (
 	"github.com/project-flogo/services/flow-state/store"
 )
 
+func init() {
+	store.SetStepStore(&StepStore{})
+}
+
 type StepStore struct {
 	sync.RWMutex
 	stepContainers map[string]*stepContainer
@@ -25,26 +29,26 @@ func (s *StepStore) GetStatus(flowId string) int {
 	return -1
 }
 
-func (s *StepStore) GetFlow(flowId string) *store.FlowInfo {
+func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
 
 	s.RLock()
 	sc, ok := s.stepContainers[flowId]
 	s.RUnlock()
 
 	if ok {
-		return &store.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI:sc.f}
+		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI:sc.f}
 	}
 
 	return nil
 }
 
-func (s *StepStore) GetFlows() []*store.FlowInfo {
+func (s *StepStore) GetFlows() []*state.FlowInfo {
 
-	var infos []*store.FlowInfo
+	var infos []*state.FlowInfo
 
 	s.RLock()
 	for id, value := range s.stepContainers {
-		infos = append(infos, &store.FlowInfo{Id: id, Status: value.Status()})
+		infos = append(infos, &state.FlowInfo{Id: id, Status: value.Status()})
 	}
 	s.RUnlock()
 

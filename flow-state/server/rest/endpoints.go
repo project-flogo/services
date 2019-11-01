@@ -19,8 +19,7 @@ type ServiceEndpoints struct {
 	snapshotStore store.SnapshotStore
 }
 
-func AppendEndpoints(router *httprouter.Router, logger log.Logger, usePreflight bool, exposeRecorder bool) {
-	em := NewEndpointManager(router, logger, usePreflight)
+func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorder bool) {
 
 	sm := &ServiceEndpoints{
 		logger:        logger,
@@ -28,18 +27,18 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, usePreflight 
 		snapshotStore: store.GetSnapshotStore(),
 	}
 
-	em.GET("/v1/instances", sm.getInstances)
-	em.GET("/v1/instances/:flowId", sm.getInstance)
-	em.GET("/v1/instances/:flowId/status", sm.getStatus)
+	router.GET("/v1/instances", sm.getInstances)
+	router.GET("/v1/instances/:flowId/details", sm.getInstance)
+	router.GET("/v1/instances/:flowId/status", sm.getStatus)
 
-	em.GET("/v1/instances/:flowId/steps", sm.getSteps)
-	em.GET("/v1/instances/:flowId/snapshot", sm.getSnapshot)
-	em.GET("/v1/instances/:flowId/snapshot/:stepId", sm.getSnapshotAtStep)
-	em.DELETE("/v1/instances/:flowId", sm.deleteInstance)
+	router.GET("/v1/instances/:flowId/steps", sm.getSteps)
+	router.GET("/v1/instances/:flowId/snapshot", sm.getSnapshot)
+	router.GET("/v1/instances/:flowId/snapshot/:stepId", sm.getSnapshotAtStep)
+	router.DELETE("/v1/instances/:flowId", sm.deleteInstance)
 
 	if exposeRecorder {
-		em.POST("/v1/instances/snapshot", sm.saveSnapshot)
-		em.POST("/v1/instances/steps", sm.saveStep)
+		router.POST("/v1/instances/snapshot", sm.saveSnapshot)
+		router.POST("/v1/instances/steps", sm.saveStep)
 	}
 }
 

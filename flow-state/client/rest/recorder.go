@@ -3,41 +3,47 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
-	"github.com/project-flogo/core/support"
+	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/core/support/log"
-	"github.com/project-flogo/flow/service"
+	"github.com/project-flogo/core/support/service"
 	"github.com/project-flogo/flow/state"
 )
+
+func init() {
+	_ = service.RegisterFactory(&StateRecorderFactory{})
+}
+
+type StateRecorderFactory struct {
+
+}
+
+func (s StateRecorderFactory) NewService(config *service.Config) (service.Service, error) {
+	recorder := &StateRecorder{}
+	err := recorder.init(config.Settings)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo switch this logger
+	recorder.logger = log.RootLogger()
+
+	return recorder, nil
+}
 
 // StateRecorder is an implementation of StateRecorder service
 // that can access flows via URI
 type StateRecorder struct {
 	host    string
-	enabled bool
 	logger  log.Logger
 }
 
-// NewRemoteStateRecorder creates a new StateRecorder
-func NewStateRecorder(config *support.ServiceConfig) *StateRecorder {
-
-	recorder := &StateRecorder{enabled: config.Enabled}
-	recorder.init(config.Settings)
-
-	//todo switch this logger
-	recorder.logger = log.RootLogger()
-
-	return recorder
-}
-
 func (sr *StateRecorder) Name() string {
-	return service.ServiceStateRecorder
-}
-
-func (sr *StateRecorder) Enabled() bool {
-	return sr.enabled
+	return "FlowStateRecorder"
 }
 
 // Start implements util.Managed.Start()
@@ -53,22 +59,34 @@ func (sr *StateRecorder) Stop() error {
 }
 
 // Init implements services.StateRecorderService.Init()
-func (sr *StateRecorder) init(settings map[string]string) {
+func (sr *StateRecorder) init(settings map[string]interface{}) error {
 
-	host, set := settings["host"]
-	port, set := settings["port"]
-
+	sHost, set := settings["host"]
 	if !set {
-		panic("StateRecorder: required setting 'host' not set")
+		return fmt.Errorf("StateRecorder: required setting 'host' not set")
+	}
+	host, err := coerce.ToString(sHost)
+	if err != nil {
+		return fmt.Errorf("StateRecorder: invalid host '%v'", sHost)
+	}
+
+	sPort, set := settings["port"]
+	if !set {
+		return fmt.Errorf("StateRecorder: required setting 'port' not set")
+	}
+	port, err := coerce.ToInt(sPort)
+	if err != nil {
+		return fmt.Errorf("StateRecorder: invalid port '%v'", sPort)
 	}
 
 	if strings.Index(host, "http") != 0 {
-		sr.host = "http://" + host + ":" + port
+		sr.host = "http://" + host + ":" + strconv.Itoa(port)
 	} else {
-		sr.host = host + ":" + port
+		sr.host = host + ":" + strconv.Itoa(port)
 	}
 
 	sr.logger.Debugf("StateRecorder: StateRecorder Server = %s", sr.host)
+	return nil
 }
 
 // RecordSnapshot implements instance.StateRecorder.RecordSnapshot
@@ -135,8 +153,4 @@ func (sr *StateRecorder) RecordStep(step *state.Step) error {
 	}
 
 	return nil
-}
-
-func DefaultConfig() *support.ServiceConfig {
-	return &support.ServiceConfig{Name: service.ServiceStateRecorder, Enabled: true, Settings: map[string]string{"host": ""}}
 }

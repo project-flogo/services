@@ -8,8 +8,8 @@ var stepStore StepStore
 
 type StepStore interface {
 	GetStatus(flowId string) int
-	GetFlow(flowId string) *FlowInfo
-	GetFlows() []*FlowInfo
+	GetFlow(flowId string) *state.FlowInfo
+	GetFlows() []*state.FlowInfo
 	SaveStep(step *state.Step) error
 	GetSteps(flowId string) []*state.Step
 	Delete(flowId string)
