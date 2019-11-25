@@ -36,7 +36,7 @@ func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
 	s.RUnlock()
 
 	if ok {
-		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI:sc.f}
+		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI:sc.flowURI}
 	}
 
 	return nil
