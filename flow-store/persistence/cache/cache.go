@@ -36,7 +36,8 @@ func (f *cacheStorage) SaveFlow(flow map[string]interface{}) string {
 func (f *cacheStorage) GetFlow(id string) (interface{}, error) {
 	fl := f.cache.GetFlow(id)
 	if fl == nil {
-		return nil, fmt.Errorf("Not flow [%s] found", id)
+		return nil, nil
+		//return nil, fmt.Errorf("flow [%s] no found", id)
 	}
 	return fl.Flow, nil
 }
@@ -44,7 +45,7 @@ func (f *cacheStorage) GetFlow(id string) (interface{}, error) {
 func (f *cacheStorage) DeleteFlow(flowId string) error {
 	fl := f.cache.GetFlow(flowId)
 	if fl == nil {
-		return fmt.Errorf("Not flow [%s] found", flowId)
+		return fmt.Errorf("flow [%s] not found", flowId)
 	}
 	f.cache.DeleteFlow(flowId)
 	return nil
@@ -53,7 +54,7 @@ func (f *cacheStorage) DeleteFlow(flowId string) error {
 func (f *cacheStorage) GetFlowMetadata(flowId string) (*flow.Metdata, error) {
 	fl := f.cache.GetFlow(flowId)
 	if fl == nil {
-		return nil, fmt.Errorf("Not flow [%s] found", flowId)
+		return nil, fmt.Errorf("flow [%s] not found", flowId)
 	}
 	return fl.Metdata, nil
 }

@@ -118,9 +118,12 @@ func GetFlow(response http.ResponseWriter, request *http.Request, params httprou
 
 	fl, err := storage.GetFlow(id)
 	if err != nil {
-		handlerErrorResponse(response, http.StatusInternalServerError, fmt.Errorf("Get flow [%s] error [%s]", id, err))
-		log.Error(fmt.Sprintf("Get flow "+id+" error :%v", err.Error()))
+		getErr := fmt.Errorf("error getting flow [%s]: %s", id, err)
+		handlerErrorResponse(response, http.StatusInternalServerError, getErr)
+		log.Error(getErr.Error())
 		return
+	} else if fl == nil {
+		handlerErrorResponse(response, http.StatusNotFound, fmt.Errorf("flow [%s] not found", id))
 	} else {
 		response.Header().Set("Content-Type", "application/json")
 		response.WriteHeader(http.StatusOK)
