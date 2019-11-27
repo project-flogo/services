@@ -28,13 +28,15 @@ type StateServiceFactory struct {
 
 func (s *StateServiceFactory) NewService(config *service.Config) (service.Service, error) {
 	ss := &StateService{}
+
+	//todo switch this logger
+	ss.logger = log.RootLogger()
+
 	err := ss.init(config.Settings)
 	if err != nil {
 		return nil, err
 	}
 
-	//todo switch this logger
-	ss.logger = log.RootLogger()
 
 	return ss, nil
 }

@@ -53,6 +53,12 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
+
+	if instances == nil {
+		_, _ = response.Write([]byte("[]"))
+		return
+	}
+
 	if err := json.NewEncoder(response).Encode(instances); err != nil {
 		se.logger.Error(err.Error())
 	}
