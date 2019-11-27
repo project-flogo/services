@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	store.SetStepStore(&StepStore{})
+	store.SetStepStore(&StepStore{stepContainers:make(map[string]*stepContainer)})
 }
 
 type StepStore struct {
