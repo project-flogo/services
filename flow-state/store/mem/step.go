@@ -48,7 +48,7 @@ func (s *StepStore) GetFlows() []*state.FlowInfo {
 
 	s.RLock()
 	for id, value := range s.stepContainers {
-		infos = append(infos, &state.FlowInfo{Id: id, Status: value.Status()})
+		infos = append(infos, &state.FlowInfo{Id: id, FlowURI: value.flowURI, Status: value.Status()})
 	}
 	s.RUnlock()
 
