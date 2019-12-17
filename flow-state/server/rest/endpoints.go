@@ -177,7 +177,7 @@ func (se *ServiceEndpoints) getSnapshotAtStep(response http.ResponseWriter, requ
 		return
 	}
 
-	snapshot := state.StepsToSnapshot(flowId, steps[:stepId])
+	snapshot := state.StepsToSnapshot(flowId, steps[:stepId+1])
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
