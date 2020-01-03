@@ -108,26 +108,20 @@ func (sc *stepContainer) Status() int {
 	return status
 }
 
-//todo review this, is main flow always the 0 index?
 func (sc *stepContainer) AddStep(step *state.Step) {
 	sc.Lock()
+
 	if len(step.FlowChanges) > 0 {
-
-		if step.FlowChanges[0] != nil {
-			if step.FlowChanges[0].SubflowId == 0 {
-				if status := step.FlowChanges[0].Status; status != -1 {
-					sc.status = status
-				}
-				if uri := step.FlowChanges[0].FlowURI; uri != "" {
-					sc.flowURI = uri
-				}
-			}
-
-			if status := step.FlowChanges[0].Status; status != -1 && step.FlowChanges[0].SubflowId == 0 {
+		if step.FlowChanges[0] != nil && step.FlowChanges[0].SubflowId == 0 {
+			if status := step.FlowChanges[0].Status; status != -1 {
 				sc.status = status
+			}
+			if uri := step.FlowChanges[0].FlowURI; uri != "" {
+				sc.flowURI = uri
 			}
 		}
 	}
+
 	sc.steps = append(sc.steps, step)
 	sc.Unlock()
 }
