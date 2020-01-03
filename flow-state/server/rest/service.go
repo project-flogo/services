@@ -19,6 +19,9 @@ const (
 	SettingKeyFile        = "keyFile"
 )
 
+var logger = log.ChildLogger(log.RootLogger(), "state-service")
+
+
 func init() {
 	_ = service.RegisterFactory(&StateServiceFactory{})
 }
@@ -29,14 +32,10 @@ type StateServiceFactory struct {
 func (s *StateServiceFactory) NewService(config *service.Config) (service.Service, error) {
 	ss := &StateService{}
 
-	//todo switch this logger
-	ss.logger = log.RootLogger()
-
 	err := ss.init(config.Settings)
 	if err != nil {
 		return nil, err
 	}
-
 
 	return ss, nil
 }
@@ -45,16 +44,15 @@ func (s *StateServiceFactory) NewService(config *service.Config) (service.Servic
 // that can access flows via URI
 type StateService struct {
 	server  *Server
-	logger  log.Logger
-	enabled bool
 }
 
 func (ss *StateService) Name() string {
 	return "FlowStateService"
 }
 
+//DEPRECATED
 func (ss *StateService) Enabled() bool {
-	return ss.enabled
+	return true
 }
 
 // Start implements util.Managed.Start()
@@ -86,7 +84,7 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 		exposeRecorder, _ = coerce.ToBool(sExpose)
 	}
 
-	AppendEndpoints(router, ss.logger, exposeRecorder)
+	AppendEndpoints(router, logger, exposeRecorder)
 
 	var options []func(*Server)
 
@@ -108,7 +106,7 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 		options = append(options, TLS(certFile, keyFile))
 	}
 
-	options = append(options, Logger(ss.logger))
+	options = append(options, Logger(logger))
 
 	c := cors.New(cors.Options{
 		AllowCredentials: true,

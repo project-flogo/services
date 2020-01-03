@@ -116,7 +116,7 @@ func (s *Server) Start() error {
 
 		go func() {
 
-			s.logger.Infof("State Service listening on https://%s", fullAddr)
+			s.logger.Infof("Listening on https://%s", fullAddr)
 
 			if err := s.srv.ListenAndServeTLS(s.certFile, s.keyFile); err != nil {
 				s.running = false
@@ -128,7 +128,7 @@ func (s *Server) Start() error {
 	} else {
 		go func() {
 
-			s.logger.Infof("State Service Listening on http://%s", fullAddr)
+			s.logger.Infof("Listening on http://%s", fullAddr)
 
 			if err := s.srv.ListenAndServe(); err != nil {
 				s.running = false
@@ -165,7 +165,7 @@ func (s *Server) validateStart()  error {
 	if err != nil {
 		return err
 	}
-	ln.Close()
+	_ = ln.Close()
 
 	return nil
 }
