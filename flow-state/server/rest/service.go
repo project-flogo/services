@@ -19,7 +19,7 @@ const (
 	SettingKeyFile        = "keyFile"
 )
 
-var logger = log.ChildLogger(log.RootLogger(), "state-service")
+var logger = log.ChildLogger(log.RootLogger(), "flow-state")
 
 
 func init() {
