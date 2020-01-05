@@ -165,7 +165,7 @@ func (s *Server) validateStart()  error {
 	if err != nil {
 		return err
 	}
-	ln.Close()
+	_ = ln.Close()
 
 	return nil
 }
