@@ -1,6 +1,6 @@
 package flow
 
-type Metdata struct {
+type Metadata struct {
 	Id           string `json:"id"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
@@ -8,6 +8,6 @@ type Metdata struct {
 }
 
 type Flow struct {
-	Metdata *Metdata    `json:"metdata"`
-	Flow    interface{} `json:"flow"`
+	Metadata *Metadata   `json:"metadata"`
+	Flow     interface{} `json:"flow"`
 }
