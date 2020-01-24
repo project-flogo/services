@@ -100,13 +100,13 @@ func Ping(response http.ResponseWriter, request *http.Request, _ httprouter.Para
 func ListAllFlow(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
 	log.Debug("List all flows")
 	flows := storage.AllFlows()
-	var metdatas []*flow.Metdata
+	var metadatas []*flow.Metadata
 	for _, v := range flows {
-		metdatas = append(metdatas, v.Metdata)
+		metadatas = append(metadatas, v.Metadata)
 	}
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(response).Encode(metdatas); err != nil {
+	if err := json.NewEncoder(response).Encode(metadatas); err != nil {
 		log.Error(err.Error())
 	}
 

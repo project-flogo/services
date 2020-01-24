@@ -7,5 +7,5 @@ type Storage interface {
 	SaveFlow(flow map[string]interface{}) string
 	GetFlow(path string) (interface{}, error)
 	DeleteFlow(path string) error
-	GetFlowMetadata(flowId string) (*flow.Metdata, error)
+	GetFlowMetadata(flowId string) (*flow.Metadata, error)
 }

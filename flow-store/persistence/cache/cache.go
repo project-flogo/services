@@ -29,8 +29,8 @@ func (f *cacheStorage) AllFlows() []*flow.Flow {
 
 func (f *cacheStorage) SaveFlow(flow map[string]interface{}) string {
 	fl := getFlow(flow)
-	f.cache.AddFlow(fl.Metdata.Id, fl)
-	return fl.Metdata.Id
+	f.cache.AddFlow(fl.Metadata.Id, fl)
+	return fl.Metadata.Id
 }
 
 func (f *cacheStorage) GetFlow(id string) (interface{}, error) {
@@ -51,12 +51,12 @@ func (f *cacheStorage) DeleteFlow(flowId string) error {
 	return nil
 }
 
-func (f *cacheStorage) GetFlowMetadata(flowId string) (*flow.Metdata, error) {
+func (f *cacheStorage) GetFlowMetadata(flowId string) (*flow.Metadata, error) {
 	fl := f.cache.GetFlow(flowId)
 	if fl == nil {
 		return nil, fmt.Errorf("flow [%s] not found", flowId)
 	}
-	return fl.Metdata, nil
+	return fl.Metadata, nil
 }
 
 func getFlow(body map[string]interface{}) *flow.Flow {
@@ -74,7 +74,7 @@ func getFlow(body map[string]interface{}) *flow.Flow {
 	if ok {
 		description = des.(string)
 	}
-	flowMetadata := &flow.Metdata{
+	flowMetadata := &flow.Metadata{
 		Id:           id,
 		Name:         body["name"].(string),
 		Description:  description,
@@ -82,7 +82,7 @@ func getFlow(body map[string]interface{}) *flow.Flow {
 	}
 
 	flow := &flow.Flow{
-		Metdata: flowMetadata,
+		Metadata: flowMetadata,
 		Flow:    body,
 	}
 	return flow
