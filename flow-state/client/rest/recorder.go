@@ -19,18 +19,16 @@ func init() {
 }
 
 type StateRecorderFactory struct {
-
 }
 
 func (s StateRecorderFactory) NewService(config *service.Config) (service.Service, error) {
 	recorder := &StateRecorder{}
+	recorder.logger = log.RootLogger()
+
 	err := recorder.init(config.Settings)
 	if err != nil {
 		return nil, err
 	}
-
-	//todo switch this logger
-	recorder.logger = log.RootLogger()
 
 	return recorder, nil
 }
@@ -38,8 +36,8 @@ func (s StateRecorderFactory) NewService(config *service.Config) (service.Servic
 // StateRecorder is an implementation of StateRecorder service
 // that can access flows via URI
 type StateRecorder struct {
-	host    string
-	logger  log.Logger
+	host   string
+	logger log.Logger
 }
 
 func (sr *StateRecorder) Name() string {
