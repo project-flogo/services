@@ -44,6 +44,7 @@ func handleRecordEvent() {
 					for checking := true; checking; {
 						if s != nil {
 							checking = false
+							break
 						}
 						recorderLog.Infof("Waiting for client step steaming connection")
 						time.Sleep(1 * time.Second)
