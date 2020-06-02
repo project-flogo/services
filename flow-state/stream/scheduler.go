@@ -49,7 +49,7 @@ func NewEventStreamScheduler(w http.ResponseWriter, r *http.Request, defResponse
 		defaultResponse:          defResponse,
 		eventStreamChannel:       make(chan *Response),
 		schedulerFinishedChannel: make(chan int),
-		responseInterval:         1000,
+		responseInterval:         5000,
 		responseChannel:          make(chan *Response),
 	}
 }
