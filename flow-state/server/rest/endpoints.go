@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/project-flogo/services/flow-state/event"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -17,9 +18,10 @@ type ServiceEndpoints struct {
 	logger        log.Logger
 	stepStore     store.StepStore
 	snapshotStore store.SnapshotStore
+	streamingStep bool
 }
 
-func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorder bool) {
+func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorder bool, streamingStep bool) {
 
 	sm := &ServiceEndpoints{
 		logger:        logger,
@@ -32,6 +34,11 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/status", sm.getStatus)
 
 	router.GET("/v1/instances/:flowId/steps", sm.getSteps)
+	if streamingStep {
+		router.GET("/v1/stream/steps", event.HandleStepEvent)
+		event.StartStepListener()
+	}
+
 	router.GET("/v1/instances/:flowId/snapshot", sm.getSnapshot)
 	router.GET("/v1/instances/:flowId/snapshot/:stepId", sm.getSnapshotAtStep)
 	router.DELETE("/v1/instances/:flowId", sm.deleteInstance)

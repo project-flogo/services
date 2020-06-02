@@ -14,13 +14,13 @@ import (
 const (
 	SettingPort           = "port"
 	SettingExposeRecorder = "exposeRecorder"
+	SettingStreamingStep  = "streamingStep"
 	SettingEnableTLS      = "enableTLS"
 	SettingCertFile       = "certFile"
 	SettingKeyFile        = "keyFile"
 )
 
 var logger = log.ChildLogger(log.RootLogger(), "flow-state")
-
 
 func init() {
 	_ = service.RegisterFactory(&StateServiceFactory{})
@@ -43,7 +43,7 @@ func (s *StateServiceFactory) NewService(config *service.Config) (service.Servic
 // StateService is an implementation of StateService service
 // that can access flows via URI
 type StateService struct {
-	server  *Server
+	server *Server
 }
 
 func (ss *StateService) Name() string {
@@ -84,7 +84,11 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 		exposeRecorder, _ = coerce.ToBool(sExpose)
 	}
 
-	AppendEndpoints(router, logger, exposeRecorder)
+	streamingStep := false
+	if stream, set := settings[SettingStreamingStep]; set {
+		streamingStep, _ = coerce.ToBool(stream)
+	}
+	AppendEndpoints(router, logger, exposeRecorder, streamingStep)
 
 	var options []func(*Server)
 
@@ -110,10 +114,10 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 
 	c := cors.New(cors.Options{
 		AllowCredentials: true,
-		AllowedMethods: []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
 	})
 
-	server, err := newServer(":" + strconv.Itoa(port), c.Handler(router), options...)
+	server, err := newServer(":"+strconv.Itoa(port), c.Handler(router), options...)
 	if err != nil {
 		return err
 	}
