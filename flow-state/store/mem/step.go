@@ -1,14 +1,14 @@
 package mem
 
 import (
-	"sync"
-
 	"github.com/project-flogo/flow/state"
+	"github.com/project-flogo/services/flow-state/event"
 	"github.com/project-flogo/services/flow-state/store"
+	"sync"
 )
 
 func init() {
-	store.SetStepStore(&StepStore{stepContainers:make(map[string]*stepContainer)})
+	store.SetStepStore(&StepStore{stepContainers: make(map[string]*stepContainer)})
 }
 
 type StepStore struct {
@@ -36,7 +36,7 @@ func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
 	s.RUnlock()
 
 	if ok {
-		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI:sc.flowURI}
+		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI: sc.flowURI}
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func (s *StepStore) GetFlows() []*state.FlowInfo {
 }
 
 func (s *StepStore) SaveStep(step *state.Step) error {
-
+	event.PostStepEvent(step)
 	s.RLock()
 	sc, ok := s.stepContainers[step.FlowId]
 	s.RUnlock()
@@ -95,9 +95,9 @@ func (s *StepStore) Delete(flowId string) {
 
 type stepContainer struct {
 	sync.RWMutex
-	status int
+	status  int
 	flowURI string
-	steps  []*state.Step
+	steps   []*state.Step
 }
 
 func (sc *stepContainer) Status() int {
