@@ -63,12 +63,10 @@ func NewEventStreamScheduler(w http.ResponseWriter, r *http.Request, defResponse
 func (s *eventStreamScheduler) Start(connectionMonitor ConnectionMonitor) {
 	// Mark the end of the scheduler
 	defer func() {
-		defer func() {
-			if !s.connectionLost {
-				s.schedulerFinishedChannel <- 1
-			}
-			s.running = false
-		}()
+		if !s.connectionLost {
+			s.schedulerFinishedChannel <- 1
+		}
+		s.running = false
 	}()
 
 	log.Info("Event Scheduler Started...")
