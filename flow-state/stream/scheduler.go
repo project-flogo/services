@@ -3,10 +3,11 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/project-flogo/flow/state"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/project-flogo/flow/state"
+	log "github.com/sirupsen/logrus"
 )
 
 //Response status
@@ -33,6 +34,8 @@ type eventStreamScheduler struct {
 	schedulerFinishedChannel chan int
 	responseInterval         int
 	responseChannel          chan *Response
+	running                  bool
+	connectionLost           bool
 }
 
 type Response struct {
@@ -51,6 +54,8 @@ func NewEventStreamScheduler(w http.ResponseWriter, r *http.Request, defResponse
 		schedulerFinishedChannel: make(chan int),
 		responseInterval:         5000,
 		responseChannel:          make(chan *Response),
+		running:                  true,
+		connectionLost:           false,
 	}
 }
 
@@ -58,7 +63,10 @@ func NewEventStreamScheduler(w http.ResponseWriter, r *http.Request, defResponse
 func (s *eventStreamScheduler) Start(connectionMonitor ConnectionMonitor) {
 	// Mark the end of the scheduler
 	defer func() {
-		s.schedulerFinishedChannel <- 1
+		if !s.connectionLost {
+			s.schedulerFinishedChannel <- 1
+		}
+		s.running = false
 	}()
 
 	log.Info("Event Scheduler Started...")
@@ -109,6 +117,7 @@ func (s *eventStreamScheduler) Start(connectionMonitor ConnectionMonitor) {
 				log.Debug("Connection closed, waiting for scheduler to stop")
 				// Finishing build
 				building = false
+				s.connectionLost = true
 				continue
 			}
 
@@ -167,7 +176,11 @@ func (s *eventStreamScheduler) FinishWithError(errorDetails string) {
 // Finish indicate to complete the response
 func (s *eventStreamScheduler) Finish(res *Response) {
 	// Send response to the stream channel
-	s.eventStreamChannel <- res
+	if s.running {
+		s.eventStreamChannel <- res
+	}
 	// Wait for the scheduler to finish
-	<-s.schedulerFinishedChannel
+	if !s.connectionLost {
+		<-s.schedulerFinishedChannel
+	}
 }

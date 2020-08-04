@@ -1,13 +1,15 @@
 package event
 
 import (
+	"net/http"
+	"time"
+
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/project-flogo/core/engine/event"
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/stream"
-	"net/http"
-	"time"
 )
 
 var recorderLog = log.ChildLogger(log.RootLogger(), "step-listener")
@@ -58,6 +60,7 @@ func handleRecordEvent() {
 					if ok && (flowChange.Status == 500 || flowChange.Status == 600 || flowChange.Status == 700) {
 						//Finish it after flow completed/canceled/failed
 						s.Finish(&stream.Response{Step: step, Status: stream.Completed})
+						s = nil
 						done <- true
 					} else {
 						s.UpdateResponse(&stream.Response{Step: step, Status: stream.Running})
@@ -87,14 +90,15 @@ func HandleStepEvent(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 		}()
 	}
 
-	s := stream.NewEventStreamScheduler(w, r, &stream.Response{Status: stream.Running, Details: "Waiting step data", Step: nil})
+	scheduler := stream.NewEventStreamScheduler(w, r, &stream.Response{Status: stream.Running, Details: "Waiting step data", Step: nil})
 	go func() {
 		// Start the scheduler
 		recorderLog.Debug("Starting connection monitor scheduler...")
-		s.Start(connectionMonitor)
+		scheduler.Start(connectionMonitor)
 	}()
 
 	recorderLog.Info("Step streaming request comes")
-	setWriter(s)
+
+	setWriter(scheduler)
 	<-done
 }
