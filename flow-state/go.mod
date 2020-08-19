@@ -1,6 +1,7 @@
 module github.com/project-flogo/services/flow-state
 
 require (
+	github.com/gorilla/websocket v1.4.2
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/project-flogo/core v0.10.1
 	github.com/project-flogo/flow v0.10.0
