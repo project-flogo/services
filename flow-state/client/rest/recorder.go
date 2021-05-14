@@ -87,6 +87,37 @@ func (sr *StateRecorder) init(settings map[string]interface{}) error {
 	return nil
 }
 
+func (sr *StateRecorder) RecordStart(state *state.FlowState) error {
+
+	uri := sr.host + "/v1/instances/start"
+
+	sr.logger.Debugf("POST record start: %s\n", uri)
+
+	jsonReq, _ := json.Marshal(state)
+
+	sr.logger.Debug("JSON: ", string(jsonReq))
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonReq))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	sr.logger.Debug("response Status:", resp.Status)
+
+	if resp.StatusCode >= 300 {
+		//todo return error
+	}
+	return nil
+}
+
 // RecordSnapshot implements instance.StateRecorder.RecordSnapshot
 func (sr *StateRecorder) RecordSnapshot(snapshot *state.Snapshot) error {
 
@@ -150,5 +181,35 @@ func (sr *StateRecorder) RecordStep(step *state.Step) error {
 		//todo return error
 	}
 
+	return nil
+}
+
+func (sr *StateRecorder) RecordDone(state *state.FlowState) error {
+	uri := sr.host + "/v1/instances/end"
+
+	sr.logger.Debugf("POST record start: %s\n", uri)
+
+	jsonReq, _ := json.Marshal(state)
+
+	sr.logger.Debug("JSON: ", string(jsonReq))
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(jsonReq))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	sr.logger.Debug("response Status:", resp.Status)
+
+	if resp.StatusCode >= 300 {
+		//todo return error
+	}
 	return nil
 }

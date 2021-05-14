@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/project-flogo/services/flow-state/event"
+	"github.com/project-flogo/services/flow-state/store/metadata"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -14,22 +15,30 @@ import (
 	"github.com/project-flogo/services/flow-state/store"
 )
 
+const (
+	Flogo_UserName   = "username"
+	FLOGO_APPNAME    = "app"
+	FLOGO_HOSTNAME   = "host"
+	FLOGO_FlowName   = "flow"
+	Flow_Mode        = "mode"
+	Flow_Failed_Mode = "failed"
+)
+
 type ServiceEndpoints struct {
 	logger        log.Logger
-	stepStore     store.StepStore
-	snapshotStore store.SnapshotStore
+	stepStore     store.Store
 	streamingStep bool
 }
 
 func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorder bool, streamingStep bool) {
 
 	sm := &ServiceEndpoints{
-		logger:        logger,
-		stepStore:     store.GetStepStore(),
-		snapshotStore: store.GetSnapshotStore(),
+		logger:    logger,
+		stepStore: store.RegistedStore(),
 	}
 
 	router.GET("/v1/instances", sm.getInstances)
+
 	router.GET("/v1/instances/:flowId/details", sm.getInstance)
 	router.GET("/v1/instances/:flowId/status", sm.getStatus)
 
@@ -46,26 +55,57 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	if exposeRecorder {
 		router.POST("/v1/instances/snapshot", sm.saveSnapshot)
 		router.POST("/v1/instances/steps", sm.saveStep)
+		router.POST("/v1/instances/start", sm.saveStart)
+		router.POST("/v1/instances/end", sm.saveEnd)
 	}
 }
 
 func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	se.logger.Debugf("Endpoint[GET:/instances] : Called")
-	instances := se.snapshotStore.GetFlows()
 
-	if len(instances) == 0 {
-		se.logger.Debugf("Getting instances from steps")
-		instances = se.stepStore.GetFlows()
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	appName := request.URL.Query().Get(FLOGO_APPNAME)
+	if len(appName) <= 0 {
+		http.Error(response, "Please provider app id or app name", http.StatusBadRequest)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username: userName,
+		AppId:    appName,
+		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
+		FlowName: request.URL.Query().Get(FLOGO_FlowName),
+	}
+
+	var instances []*state.FlowInfo
+	var err error
+	mode := request.URL.Query().Get(Flow_Mode)
+	if len(mode) > 0 && mode == Flow_Failed_Mode {
+		instances, err = se.stepStore.GetFailedFlows(metadata)
+		if err != nil {
+			http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		instances, err = se.stepStore.GetFlows(metadata)
+		if err != nil {
+			http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
-
 	if instances == nil {
 		_, _ = response.Write([]byte("[]"))
 		return
 	}
-
 	if err := json.NewEncoder(response).Encode(instances); err != nil {
 		se.logger.Error(err.Error())
 	}
@@ -74,7 +114,7 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[GET:/instances/%s] : Called", flowId)
-	instance := se.snapshotStore.GetFlow(flowId)
+	instance := se.stepStore.GetFlow(flowId)
 
 	if instance == nil {
 		se.logger.Debugf("Getting instance from steps")
@@ -96,7 +136,7 @@ func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *h
 func (se *ServiceEndpoints) getStatus(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[GET:/instances/%s/status] : Called", flowId)
-	status := se.snapshotStore.GetStatus(flowId)
+	status := se.stepStore.GetStatus(flowId)
 
 	if status == -1 {
 		se.logger.Debugf("Getting status from steps")
@@ -138,7 +178,7 @@ func (se *ServiceEndpoints) getSteps(response http.ResponseWriter, request *http
 func (se *ServiceEndpoints) getSnapshot(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[GET:/instances/%s/snapshot] : Called", flowId)
-	snapshot := se.snapshotStore.GetSnapshot(flowId)
+	snapshot := se.stepStore.GetSnapshot(flowId)
 
 	if snapshot == nil {
 		se.logger.Debugf("Getting Snapshot from steps")
@@ -197,8 +237,38 @@ func (se *ServiceEndpoints) deleteInstance(response http.ResponseWriter, request
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[DEL:/instances/%s] : Called", flowId)
 
-	se.snapshotStore.Delete(flowId)
+	//se.stepStore.Delete(flowId)
 	se.stepStore.Delete(flowId)
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+}
+
+func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
+	se.logger.Debugf("Endpoint[POST:/instances/steps] : Called")
+
+	content, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to read body"))
+		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
+		return
+	}
+
+	step := &state.FlowState{}
+	err = json.Unmarshal(content, step)
+	if err != nil {
+		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
+		se.logger.Debugf("Endpoint[POST:/instances/start] : Step content - %s ", string(content))
+		se.logger.Errorf("Endpoint[POST:/instances/start] : Error unmarshalling step - %v", err)
+		return
+	}
+
+	err = se.stepStore.RecordStart(step)
+	if err != nil {
+		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
+		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
+		return
+	}
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
@@ -253,10 +323,40 @@ func (se *ServiceEndpoints) saveSnapshot(response http.ResponseWriter, request *
 		return
 	}
 
-	err = se.snapshotStore.SaveSnapshot(snapshot)
+	err = se.stepStore.SaveSnapshot(snapshot)
 	if err != nil {
 		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save snapshot"))
 		se.logger.Errorf("Endpoint[POST:/instances/snapshot] : Error saving snapshot - %v", err)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+}
+
+func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
+	se.logger.Debugf("Endpoint[POST:/instances/steps] : Called")
+
+	content, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to read body"))
+		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
+		return
+	}
+
+	step := &state.FlowState{}
+	err = json.Unmarshal(content, step)
+	if err != nil {
+		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
+		se.logger.Debugf("Endpoint[POST:/instances/steps] : Step content - %s ", string(content))
+		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error unmarshalling step - %v", err)
+		return
+	}
+
+	err = se.stepStore.RecordEnd(step)
+	if err != nil {
+		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
+		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
 		return
 	}
 

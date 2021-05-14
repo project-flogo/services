@@ -3,24 +3,16 @@ package mem
 import (
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/event"
-	"github.com/project-flogo/services/flow-state/store/metadata"
+	"github.com/project-flogo/services/flow-state/store"
 	"sync"
 )
 
-//func init() {
-//	store.SetStepStore(&StepStore{stepContainers: make(map[string]*stepContainer)})
-//}
-
-func NewStore() *StepStore {
-	return &StepStore{stepContainers: make(map[string]*stepContainer)}
+func init() {
+	store.SetStepStore(&StepStore{stepContainers: make(map[string]*stepContainer)})
 }
 
 type StepStore struct {
 	sync.RWMutex
-	userId         string
-	appId          string
-	stepContainers map[string]*stepContainer
-	snapshots      sync.Map
 }
 
 func (s *StepStore) GetStatus(flowId string) int {
@@ -49,7 +41,7 @@ func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
 	return nil
 }
 
-func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
+func (s *StepStore) GetFlows() []*state.FlowInfo {
 
 	var infos []*state.FlowInfo
 
@@ -59,22 +51,7 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 	}
 	s.RUnlock()
 
-	return infos, nil
-}
-
-func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
-
-	var infos []*state.FlowInfo
-
-	s.RLock()
-	for id, value := range s.stepContainers {
-		if value.Status() == 500 {
-			infos = append(infos, &state.FlowInfo{Id: id, FlowURI: value.flowURI, Status: value.Status()})
-		}
-	}
-	s.RUnlock()
-
-	return infos, nil
+	return infos
 }
 
 func (s *StepStore) SaveStep(step *state.Step) error {
@@ -153,25 +130,4 @@ func (sc *stepContainer) Steps() []*state.Step {
 	steps := sc.steps
 	sc.RUnlock()
 	return steps
-}
-
-func (s *StepStore) SaveSnapshot(snapshot *state.Snapshot) error {
-	//replaces existing snapshot
-	s.snapshots.Store(snapshot.Id, snapshot)
-	return nil
-}
-
-func (s *StepStore) GetSnapshot(flowId string) *state.Snapshot {
-	if snapshot, ok := s.snapshots.Load(flowId); ok {
-		return snapshot.(*state.Snapshot)
-	}
-	return nil
-}
-
-func (s *StepStore) RecordStart(flowState *state.FlowState) error {
-	return nil
-}
-
-func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
-	return nil
 }
