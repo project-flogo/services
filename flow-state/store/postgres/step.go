@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/project-flogo/core/data/coerce"
@@ -37,18 +38,18 @@ func (s *StepStore) GetStatus(flowId string) int {
 	return -1
 }
 
-func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
-
-	s.RLock()
-	sc, ok := s.stepContainers[flowId]
-	s.RUnlock()
-
-	if ok {
-		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI: sc.flowURI}
-	}
-
-	return nil
-}
+//func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
+//
+//	s.RLock()
+//	sc, ok := s.stepContainers[flowId]
+//	s.RUnlock()
+//
+//	if ok {
+//		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI: sc.flowURI}
+//	}
+//
+//	return nil
+//}
 
 func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
 	var whereStr = "where"
@@ -140,20 +141,110 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 	return flowinfo, err
 }
 
+func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.FlowInfo, error) {
+	var whereStr = "where flowinstanceid = '" + flowid + "'"
+	if len(metadata.Username) > 0 {
+		whereStr += " and userId='" + metadata.Username + "'"
+	}
+
+	if len(metadata.AppId) > 0 {
+		whereStr += "  and appId='" + metadata.AppId + "'"
+	}
+
+	if len(metadata.HostId) > 0 {
+		whereStr += "  and hostId='" + metadata.HostId + "'"
+	}
+
+	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	v, _ := json.Marshal(set.Record)
+	fmt.Println(string(v))
+
+	var flowinfo []*state.FlowInfo
+	for _, v := range set.Record {
+		m := *v
+		id, _ := coerce.ToString(m["flowinstanceid"])
+		flowName, _ := coerce.ToString(m["flowname"])
+		status, _ := coerce.ToString(m["status"])
+		info := &state.FlowInfo{
+			Id:         id,
+			FlowName:   flowName,
+			FlowStatus: status,
+			FlowURI:    "res://flow:" + flowName,
+		}
+		flowinfo = append(flowinfo, info)
+	}
+	if len(flowinfo) <= 0 {
+		return nil, fmt.Errorf("flow details [%s] not found", flowid)
+	}
+	return flowinfo[0], err
+}
+
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
 	return err
 }
 
-func (s *StepStore) GetSteps(flowId string) []*state.Step {
-	s.RLock()
-	sc, ok := s.stepContainers[flowId]
-	s.RUnlock()
-	if ok {
-		return sc.Steps()
+func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
+
+	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	var steps []*state.Step
+	for _, v := range set.Record {
+		m := *v
+		s1, err := coerce.ToBytes(m["stepdata"])
+		if err != nil {
+			return nil, fmt.Errorf("decodeBase64 for step data error:", err.Error())
+		}
+		dbuf := make([]byte, base64.StdEncoding.DecodedLen(len(s1)))
+		n, err := base64.StdEncoding.Decode(dbuf, s1)
+		stePdata := dbuf[:n]
+		var step *state.Step
+		err = json.Unmarshal(stePdata, &step)
+		if err != nil {
+			return nil, err
+		}
+		steps = append(steps, step)
+	}
+
+	if len(steps) <= 0 {
+		return nil, fmt.Errorf("step for flow instance [%s] not found", flowId)
+	}
+	return steps, err
+}
+
+func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
+
+	set, err := s.db.query("select stepid, taskname, status from steps where flowinstanceid = '"+flowId+"'", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var steps []map[string]string
+	for _, v := range set.Record {
+		m := *v
+		stepData := make(map[string]string)
+		s1, _ := coerce.ToString(m["stepid"])
+		stepData["stepId"] = s1
+
+		status, _ := coerce.ToString(m["status"])
+		stepData["status"] = status
+
+		name, _ := coerce.ToString(m["taskname"])
+		stepData["taskName"] = name
+		steps = append(steps, stepData)
+	}
+
+	if len(steps) <= 0 {
+		return nil, fmt.Errorf("step for flow instance [%s] not found", flowId)
+	}
+	return steps, err
 }
 
 func (s *StepStore) Delete(flowId string) {

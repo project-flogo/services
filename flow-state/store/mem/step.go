@@ -36,17 +36,17 @@ func (s *StepStore) GetStatus(flowId string) int {
 	return -1
 }
 
-func (s *StepStore) GetFlow(flowId string) *state.FlowInfo {
+func (s *StepStore) GetFlow(flowid string, fmetadata *metadata.Metadata) (*state.FlowInfo, error) {
 
 	s.RLock()
-	sc, ok := s.stepContainers[flowId]
+	sc, ok := s.stepContainers[flowid]
 	s.RUnlock()
 
 	if ok {
-		return &state.FlowInfo{Id: flowId, Status: sc.Status(), FlowURI: sc.flowURI}
+		return &state.FlowInfo{Id: flowid, Status: sc.Status(), FlowURI: sc.flowURI}, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
@@ -98,15 +98,26 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 	return nil
 }
 
-func (s *StepStore) GetSteps(flowId string) []*state.Step {
+func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 	s.RLock()
 	sc, ok := s.stepContainers[flowId]
 	s.RUnlock()
 	if ok {
-		return sc.Steps()
+		return sc.Steps(), nil
 	}
 
-	return nil
+	return nil, nil
+}
+
+func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
+	s.RLock()
+	_, ok := s.stepContainers[flowId]
+	s.RUnlock()
+	if ok {
+		return nil, nil
+	}
+
+	return nil, nil
 }
 
 func (s *StepStore) Delete(flowId string) {

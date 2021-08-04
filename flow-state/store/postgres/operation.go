@@ -5,14 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/project-flogo/flow/state"
+	task2 "github.com/project-flogo/services/flow-state/store/task"
 	"time"
 )
 
 const (
-	STEP_INSERT      = "INSERT INTO steps (flowinstanceid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5);"
+	STEP_INSERT      = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
 	SNAPSHOT_INSERT  = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
 	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appId, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8);"
 	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2 where flowinstanceid = $3;"
+
+	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 )
 
 type StatefulDB struct {
@@ -33,6 +36,20 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	//flowInstanceId := step.FlowInstId
 	//hostID := step.HostId
 	stepId := step.Id
+	tasks, err := task2.StepToTask(step)
+	var status, taskName string
+	if len(tasks) > 1 {
+		for _, task := range tasks {
+			taskName = task.Id
+			status += "," + string(task.Status)
+		}
+	} else {
+		if len(tasks) == 1 {
+			status = string(tasks[0].Status)
+			taskName = string(tasks[0].Id)
+		}
+	}
+
 	//startTime := step.
 	b, err := json.Marshal(step)
 	if err != nil {
@@ -40,11 +57,34 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	}
 	stepData := decodeBytes(b)
 
-	inputArgs := []interface{}{step.FlowId, stepId, time.Now(), time.Now(), stepData}
-	return s.insert(STEP_INSERT, inputArgs)
+	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, time.Now(), time.Now(), stepData}
+	return s.insert(UpsertSteps, inputArgs)
 }
 
 func (s *StatefulDB) insert(insertSql string, inputArgs []interface{}) (results *ResultSet, err error) {
+
+	// log.Debug("prepared insert [%s]", prepared)
+	stmt, err := s.getStepStatement(insertSql)
+	if err != nil {
+		logCache.Errorf("Failed to prepare statement: %s", err)
+		return nil, err
+	}
+
+	logCache.Debug("----------- DB Stats in Insert activity -----------")
+	rows, err := stmt.Query(inputArgs...)
+	if err != nil {
+		logCache.Errorf("Executing prepared query got error: %s", err)
+		// stmt.Close()
+		return nil, err
+	}
+	if rows == nil {
+		return nil, nil
+	}
+	defer rows.Close()
+	return UnmarshalRows(rows)
+}
+
+func (s *StatefulDB) update(insertSql string, inputArgs []interface{}) (results *ResultSet, err error) {
 
 	// log.Debug("prepared insert [%s]", prepared)
 	stmt, err := s.getStepStatement(insertSql)

@@ -21,11 +21,12 @@ const (
 
 type Store interface {
 	GetStatus(flowId string) int
-	GetFlow(flowId string) *state.FlowInfo
+	GetFlow(flowId string, metadata *metadata.Metadata) (*state.FlowInfo, error)
 	GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
 	GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
 	SaveStep(step *state.Step) error
-	GetSteps(flowId string) []*state.Step
+	GetSteps(flowId string) ([]*state.Step, error)
+	GetStepsNoData(flowId string) ([]map[string]string, error)
 	Delete(flowId string)
 	SaveSnapshot(snapshot *state.Snapshot) error
 	GetSnapshot(flowId string) *state.Snapshot

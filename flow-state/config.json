@@ -1,0 +1,23 @@
+{
+  "exposeRecorder": true,
+  "port": "9190",
+  "persistence": {
+    "type":"postgres",
+    "name": "asdasdasd",
+    "description": "",
+    "host": "localhost",
+    "port": "54320",
+    "databaseName": "postgres",
+    "user": "postgres",
+    "password": "password",
+    "maxopenconnection": "0",
+    "maxidleconnection": "2",
+    "connmaxlifetime": "0",
+    "maxconnectattempts": "3",
+    "connectionretrydelay": "5",
+    "tlsparam": "VerifyCA",
+    "cacert": "",
+    "clientcert": "",
+    "clientkey": ""
+  }
+}
