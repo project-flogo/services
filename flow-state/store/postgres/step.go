@@ -4,10 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/project-flogo/core/data/coerce"
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/store/metadata"
-	"sync"
 )
 
 func NewStore(settings map[string]interface{}) (*StepStore, error) {
@@ -105,7 +106,7 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 	whereStr += " userId='" + metadata.Username + "'"
 
 	if len(metadata.AppId) < 0 {
-		return nil, fmt.Errorf("please provide flow id or flow name")
+		return nil, fmt.Errorf("please provide App id or App name")
 	}
 	whereStr += "  and appId='" + metadata.AppId + "'"
 
@@ -117,7 +118,7 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 		whereStr += "  and flowname='" + metadata.FlowName + "'"
 	}
 
-	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+	set, err := s.db.query("select flowinstanceid, flowname, status, starttime, endtime from flowstate "+whereStr, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -131,10 +132,14 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 		id, _ := coerce.ToString(m["flowinstanceid"])
 		flowName, _ := coerce.ToString(m["flowname"])
 		status, _ := coerce.ToString(m["status"])
+		starttime, _ := coerce.ToString(m["starttime"])
+		endtime, _ := coerce.ToString(m["endtime"])
 		info := &state.FlowInfo{
 			Id:         id,
 			FlowName:   flowName,
 			FlowStatus: status,
+			StartTime:  starttime,
+			EndTime:    endtime,
 		}
 		flowinfo = append(flowinfo, info)
 	}
