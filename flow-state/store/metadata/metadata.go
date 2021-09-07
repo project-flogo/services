@@ -1,5 +1,5 @@
 package metadata
 
 type Metadata struct {
-	Username, AppId, HostId, FlowName string
+	Username, AppId, HostId, FlowName, Offset, Limit string
 }

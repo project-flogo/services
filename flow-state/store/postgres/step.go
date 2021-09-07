@@ -118,7 +118,11 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 		whereStr += "  and flowname='" + metadata.FlowName + "'"
 	}
 
-	set, err := s.db.query("select flowinstanceid, flowname, status, starttime, endtime from flowstate "+whereStr, nil)
+	if len(metadata.Offset) > 0 && len(metadata.Limit) > 0 {
+		offsetLimitStr := "  offset '" + metadata.Offset + "'  limit  '" + metadata.Limit + "'"
+		whereStr += offsetLimitStr
+	}
+	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate "+whereStr, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +136,13 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 		id, _ := coerce.ToString(m["flowinstanceid"])
 		flowName, _ := coerce.ToString(m["flowname"])
 		status, _ := coerce.ToString(m["status"])
+		hostid, _ := coerce.ToString(m["hostid"])
 		starttime, _ := coerce.ToString(m["starttime"])
 		endtime, _ := coerce.ToString(m["endtime"])
 		info := &state.FlowInfo{
 			Id:         id,
 			FlowName:   flowName,
+			HostId:     hostid,
 			FlowStatus: status,
 			StartTime:  starttime,
 			EndTime:    endtime,

@@ -23,6 +23,8 @@ const (
 	FLOGO_FlowName   = "flow"
 	Flow_Mode        = "mode"
 	Flow_Failed_Mode = "failed"
+	OFFSET           = "offset"
+	LIMIT            = "limit"
 )
 
 type ServiceEndpoints struct {
@@ -82,6 +84,16 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 		AppId:    appName,
 		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
 		FlowName: request.URL.Query().Get(FLOGO_FlowName),
+	}
+
+	offsetValue := request.URL.Query().Get(OFFSET)
+	if len(offsetValue) > 0 {
+		metadata.Offset = offsetValue
+	}
+
+	limitValue := request.URL.Query().Get(LIMIT)
+	if len(limitValue) > 0 {
+		metadata.Limit = limitValue
 	}
 
 	var instances []*state.FlowInfo
