@@ -1,11 +1,13 @@
 package store
 
 import (
+	"os"
+
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/store/mem"
 	"github.com/project-flogo/services/flow-state/store/metadata"
 	"github.com/project-flogo/services/flow-state/store/postgres"
-	"os"
+	"github.com/project-flogo/services/flow-state/store/task"
 )
 
 const (
@@ -24,9 +26,13 @@ type Store interface {
 	GetFlow(flowId string, metadata *metadata.Metadata) (*state.FlowInfo, error)
 	GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
 	GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
+	GetCompletedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
+	GetFlowsWithRecordCount(metadata *metadata.Metadata) (*metadata.FlowRecord, error)
 	SaveStep(step *state.Step) error
 	GetSteps(flowId string) ([]*state.Step, error)
+	GetStepsAsTasks(flowId string) ([][]*task.Task, error)
 	GetStepsNoData(flowId string) ([]map[string]string, error)
+	GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error)
 	Delete(flowId string)
 	SaveSnapshot(snapshot *state.Snapshot) error
 	GetSnapshot(flowId string) *state.Snapshot
