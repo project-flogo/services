@@ -33,6 +33,7 @@ type Store interface {
 	GetStepsAsTasks(flowId string) ([][]*task.Task, error)
 	GetStepsNoData(flowId string) ([]map[string]string, error)
 	GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error)
+	GetFlowNames(metadata *metadata.Metadata) ([]string, error)
 	Delete(flowId string)
 	SaveSnapshot(snapshot *state.Snapshot) error
 	GetSnapshot(flowId string) *state.Snapshot

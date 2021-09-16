@@ -157,6 +157,9 @@ func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
 func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error) {
 	return nil, nil
 }
+func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) {
+	return nil, nil
+}
 
 func (s *StepStore) Delete(flowId string) {
 	s.Lock()

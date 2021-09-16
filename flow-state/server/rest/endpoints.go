@@ -50,6 +50,7 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/stepsastasks", sm.getStepsAsTasks)
 	router.GET("/v1/instances/:flowId/stepsnodata", sm.getStepsNoData)
 	router.GET("/v1/instances/:flowId/stepdataforactivity", sm.getStepdataForActivity)
+	router.GET("/v1/flownames", sm.getFlowNames)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -291,6 +292,43 @@ func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter,
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(response).Encode(stepdata); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
+func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	se.logger.Debugf("Endpoint[GET:/instances] : Called")
+
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	appName := request.URL.Query().Get(FLOGO_APPNAME)
+	if len(appName) <= 0 {
+		http.Error(response, "Please provider app id or app name", http.StatusBadRequest)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username: userName,
+		AppId:    appName,
+		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
+	}
+	flownames, err := se.stepStore.GetFlowNames(metadata)
+	if err != nil {
+		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if flownames == nil || len(flownames) < 1 {
+		_, _ = response.Write([]byte("[]"))
+		return
+	}
+	if err := json.NewEncoder(response).Encode(flownames); err != nil {
 		se.logger.Error(err.Error())
 	}
 }

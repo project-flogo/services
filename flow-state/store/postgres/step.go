@@ -311,6 +311,34 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 	return flowinfo[0], err
 }
 
+func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) {
+	var whereStr = "where "
+	if len(metadata.Username) > 0 {
+		whereStr += " userId='" + metadata.Username + "'"
+	}
+
+	if len(metadata.AppId) > 0 {
+		whereStr += "  and appId='" + metadata.AppId + "'"
+	}
+
+	if len(metadata.HostId) > 0 {
+		whereStr += "  and hostId='" + metadata.HostId + "'"
+	}
+
+	set, err := s.db.query("select distinct(flowname) from flowstate "+whereStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var flownameArray []string
+	for _, v := range set.Record {
+		m := *v
+		flowName, _ := coerce.ToString(m["flowname"])
+		flownameArray = append(flownameArray, flowName)
+	}
+	return flownameArray, err
+}
+
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
 	return err
