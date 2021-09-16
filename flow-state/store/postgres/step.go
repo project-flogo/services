@@ -412,7 +412,9 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 			return nil, err
 		}
 	}
-
+	if step == nil {
+		return nil, fmt.Errorf("No step data found for matching input")
+	}
 	taskValue, err := task.StepToTask(step)
 	if err != nil {
 		return nil, err
