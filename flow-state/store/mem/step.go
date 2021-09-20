@@ -1,10 +1,12 @@
 package mem
 
 import (
+	"sync"
+
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/event"
 	"github.com/project-flogo/services/flow-state/store/metadata"
-	"sync"
+	"github.com/project-flogo/services/flow-state/store/task"
 )
 
 //func init() {
@@ -62,6 +64,19 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 	return infos, nil
 }
 
+func (s *StepStore) GetFlowsWithRecordCount(metadata *metadata.Metadata) (*metadata.FlowRecord, error) {
+
+	var infos []*state.FlowInfo
+
+	s.RLock()
+	for id, value := range s.stepContainers {
+		infos = append(infos, &state.FlowInfo{Id: id, FlowURI: value.flowURI, Status: value.Status()})
+	}
+	s.RUnlock()
+
+	return nil, nil
+}
+
 func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
 
 	var infos []*state.FlowInfo
@@ -69,6 +84,21 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 	s.RLock()
 	for id, value := range s.stepContainers {
 		if value.Status() == 500 {
+			infos = append(infos, &state.FlowInfo{Id: id, FlowURI: value.flowURI, Status: value.Status()})
+		}
+	}
+	s.RUnlock()
+
+	return infos, nil
+}
+
+func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
+
+	var infos []*state.FlowInfo
+
+	s.RLock()
+	for id, value := range s.stepContainers {
+		if value.Status() == 100 {
 			infos = append(infos, &state.FlowInfo{Id: id, FlowURI: value.flowURI, Status: value.Status()})
 		}
 	}
@@ -109,7 +139,11 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 	return nil, nil
 }
 
-func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
+func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
+
+	return nil, nil
+}
+func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 	s.RLock()
 	_, ok := s.stepContainers[flowId]
 	s.RUnlock()
@@ -117,6 +151,13 @@ func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
 		return nil, nil
 	}
 
+	return nil, nil
+}
+
+func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error) {
+	return nil, nil
+}
+func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) {
 	return nil, nil
 }
 

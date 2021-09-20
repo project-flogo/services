@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	Flogo_UserName   = "username"
-	FLOGO_APPNAME    = "app"
-	FLOGO_HOSTNAME   = "host"
-	FLOGO_FlowName   = "flow"
-	Flow_Mode        = "mode"
-	Flow_Failed_Mode = "failed"
-	OFFSET           = "offset"
-	LIMIT            = "limit"
+	Flogo_UserName      = "username"
+	FLOGO_APPNAME       = "app"
+	FLOGO_HOSTNAME      = "host"
+	FLOGO_FlowName      = "flow"
+	Flow_Status         = "status"
+	Flow_Failed_Mode    = "failed"
+	Flow_Completed_Mode = "completed"
+	OFFSET              = "offset"
+	LIMIT               = "limit"
 )
 
 type ServiceEndpoints struct {
@@ -46,6 +47,11 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/status", sm.getStatus)
 
 	router.GET("/v1/instances/:flowId/steps", sm.getSteps)
+	router.GET("/v1/instances/:flowId/steps/tasks", sm.getStepsAsTasks)
+	router.GET("/v1/instances/:flowId/steps/status", sm.getStepsStatus)
+	router.GET("/v1/instances/:flowId/step/:stepId/taskdata", sm.getStepdataForActivity)
+	router.GET("/v1/flows", sm.getFlowNames)
+
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
 		event.StartStepListener()
@@ -96,23 +102,32 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 		metadata.Limit = limitValue
 	}
 
-	var instances []*state.FlowInfo
+	// var instances []*state.FlowInfo
 	var err error
-	mode := request.URL.Query().Get(Flow_Mode)
-	if len(mode) > 0 && mode == Flow_Failed_Mode {
+	status := request.URL.Query().Get(Flow_Status)
+	if len(status) > 0 {
+		metadata.Status = status
+	}
+	/*if len(status) > 0 && mode == Flow_Failed_Mode {
 		instances, err = se.stepStore.GetFailedFlows(metadata)
 		if err != nil {
 			http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
 			return
 		}
-	} else {
-		instances, err = se.stepStore.GetFlows(metadata)
+	} else if len(mode) > 0 && mode == Flow_Completed_Mode {
+		instances, err = se.stepStore.GetCompletedFlows(metadata)
 		if err != nil {
 			http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
+	} else {*/
+	instances, err := se.stepStore.GetFlowsWithRecordCount(metadata)
+	if err != nil {
+		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	/*}*/
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
@@ -212,6 +227,104 @@ func (se *ServiceEndpoints) getSteps(response http.ResponseWriter, request *http
 	}
 }
 
+func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	flowId := params.ByName("flowId")
+	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	steps, err := se.stepStore.GetStepsStatus(flowId)
+	if err != nil {
+		http.Error(response, "get steps error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if steps == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(response).Encode(steps); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
+func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	flowId := params.ByName("flowId")
+	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	tasks, err := se.stepStore.GetStepsAsTasks(flowId)
+	if err != nil {
+		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if tasks == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(response).Encode(tasks); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	flowId := params.ByName("flowId")
+	stepid := params.ByName("stepId")
+	taskname := request.URL.Query().Get("taskName")
+	se.logger.Debugf("Endpoint[GET:/instances/%s/stepdataforactivity] : Called", flowId)
+	stepdata, err := se.stepStore.GetStepdataForActivity(flowId, stepid, taskname)
+	if err != nil {
+		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if stepdata == nil {
+		response.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(response).Encode(stepdata); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
+func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	se.logger.Debugf("Endpoint[GET:/instances] : Called")
+
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	appName := request.URL.Query().Get(FLOGO_APPNAME)
+	if len(appName) <= 0 {
+		http.Error(response, "Please provider app id or app name", http.StatusBadRequest)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username: userName,
+		AppId:    appName,
+		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
+	}
+	flownames, err := se.stepStore.GetFlowNames(metadata)
+	if err != nil {
+		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if flownames == nil || len(flownames) < 1 {
+		_, _ = response.Write([]byte("[]"))
+		return
+	}
+	if err := json.NewEncoder(response).Encode(flownames); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
 func (se *ServiceEndpoints) getSnapshot(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[GET:/instances/%s/snapshot] : Called", flowId)
@@ -279,7 +392,7 @@ func (se *ServiceEndpoints) getSnapshotAtStep(response http.ResponseWriter, requ
 func (se *ServiceEndpoints) getFaildTaskStepId(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 
-	steps, err := se.stepStore.GetStepsNoData(flowId)
+	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
 		http.Error(response, "get getSnapshotAtStep error:"+err.Error(), http.StatusInternalServerError)
 		return
