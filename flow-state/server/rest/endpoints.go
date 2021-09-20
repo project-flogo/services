@@ -47,10 +47,10 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/status", sm.getStatus)
 
 	router.GET("/v1/instances/:flowId/steps", sm.getSteps)
-	router.GET("/v1/instances/:flowId/stepsastasks", sm.getStepsAsTasks)
-	router.GET("/v1/instances/:flowId/stepsnodata", sm.getStepsNoData)
-	router.GET("/v1/instances/:flowId/stepdataforactivity", sm.getStepdataForActivity)
-	router.GET("/v1/flownames", sm.getFlowNames)
+	router.GET("/v1/instances/:flowId/steps/tasks", sm.getStepsAsTasks)
+	router.GET("/v1/instances/:flowId/steps/status", sm.getStepsStatus)
+	router.GET("/v1/instances/:flowId/step/:stepId/taskdata", sm.getStepdataForActivity)
+	router.GET("/v1/flows", sm.getFlowNames)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -227,10 +227,10 @@ func (se *ServiceEndpoints) getSteps(response http.ResponseWriter, request *http
 	}
 }
 
-func (se *ServiceEndpoints) getStepsNoData(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
-	steps, err := se.stepStore.GetStepsNoData(flowId)
+	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
 		http.Error(response, "get steps error:"+err.Error(), http.StatusInternalServerError)
 		return
@@ -268,16 +268,8 @@ func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, reques
 }
 func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
-	stepid := request.URL.Query().Get("stepId")
-	if len(stepid) <= 0 {
-		http.Error(response, "stepId query param is missing", http.StatusUnauthorized)
-		return
-	}
+	stepid := params.ByName("stepId")
 	taskname := request.URL.Query().Get("taskName")
-	if len(taskname) <= 0 {
-		http.Error(response, "taskName query param is missing", http.StatusUnauthorized)
-		return
-	}
 	se.logger.Debugf("Endpoint[GET:/instances/%s/stepdataforactivity] : Called", flowId)
 	stepdata, err := se.stepStore.GetStepdataForActivity(flowId, stepid, taskname)
 	if err != nil {
@@ -400,7 +392,7 @@ func (se *ServiceEndpoints) getSnapshotAtStep(response http.ResponseWriter, requ
 func (se *ServiceEndpoints) getFaildTaskStepId(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 
-	steps, err := se.stepStore.GetStepsNoData(flowId)
+	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
 		http.Error(response, "get getSnapshotAtStep error:"+err.Error(), http.StatusInternalServerError)
 		return

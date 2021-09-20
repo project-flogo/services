@@ -31,7 +31,7 @@ type Store interface {
 	SaveStep(step *state.Step) error
 	GetSteps(flowId string) ([]*state.Step, error)
 	GetStepsAsTasks(flowId string) ([][]*task.Task, error)
-	GetStepsNoData(flowId string) ([]map[string]string, error)
+	GetStepsStatus(flowId string) ([]map[string]string, error)
 	GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error)
 	GetFlowNames(metadata *metadata.Metadata) ([]string, error)
 	Delete(flowId string)

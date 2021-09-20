@@ -417,7 +417,11 @@ func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 }
 
 func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error) {
-	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"' and stepid = '"+stepid+"' and taskname = '"+taskname+"'", nil)
+	query := "select stepdata from steps where flowinstanceid = '" + flowId + "' and stepid = '" + stepid + "'"
+	if taskname != "" {
+		query += " and taskname = '" + taskname + "'"
+	}
+	set, err := s.db.query(query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +454,7 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 	return taskValue, err
 }
 
-func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
+func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 	set, err := s.db.query("select stepid, taskname, status, starttime from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {

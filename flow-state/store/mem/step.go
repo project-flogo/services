@@ -143,7 +143,7 @@ func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 
 	return nil, nil
 }
-func (s *StepStore) GetStepsNoData(flowId string) ([]map[string]string, error) {
+func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 	s.RLock()
 	_, ok := s.stepContainers[flowId]
 	s.RUnlock()
