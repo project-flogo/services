@@ -77,7 +77,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("Started")
+	logger.Info("TIBCO Flogo Flow State Manager Started Successfully")
 
 	exitChan := setupSignalHandling()
 

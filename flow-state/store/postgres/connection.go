@@ -210,6 +210,8 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 				} else {
 					return nil, fmt.Errorf("Could not open connection to database %s, %s", cDbName, err.Error())
 				}
+			} else {
+				logCache.Info("ping to database server is successful...")
 			}
 			if dbConnected != 0 {
 				logCache.Info("Successfully connected to database server")
