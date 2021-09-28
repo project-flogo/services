@@ -12,8 +12,8 @@ import (
 const (
 	STEP_INSERT      = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
 	SNAPSHOT_INSERT  = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
-	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appId, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8);"
-	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2 where flowinstanceid = $3;"
+	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9);"
+	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2, executiontime=(EXTRACT(EPOCH FROM ($1 - starttime)))*1000 where flowinstanceid = $3;"
 
 	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 )
@@ -23,7 +23,7 @@ type StatefulDB struct {
 }
 
 func (s *StatefulDB) InsertFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppId, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
+	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
 	return s.insert(FlowState_INSERT, inputArgs)
 }
 
