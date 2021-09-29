@@ -28,6 +28,7 @@ const (
 	OFFSET              = "offset"
 	LIMIT               = "limit"
 	INTERVAL            = "interval"
+	FLOW_INSTANCE_ID    = "flowinstanceid"
 )
 
 type ServiceEndpoints struct {
@@ -112,10 +113,15 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 	}
 
 	// var instances []*state.FlowInfo
-	var err error
+	// var err error
 	status := request.URL.Query().Get(Flow_Status)
 	if len(status) > 0 {
 		metadata.Status = status
+	}
+
+	flowinstanceid := request.URL.Query().Get(FLOW_INSTANCE_ID)
+	if len(flowinstanceid) > 0 {
+		metadata.FlowInstanceId = flowinstanceid
 	}
 
 	interval := request.URL.Query().Get(INTERVAL)

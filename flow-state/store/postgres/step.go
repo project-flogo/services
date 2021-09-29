@@ -248,6 +248,10 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		whereStr += "  and status='" + mtdata.Status + "'"
 	}
 
+	if len(mtdata.FlowInstanceId) > 0 {
+		whereStr += "  and flowinstanceid='" + mtdata.FlowInstanceId + "'"
+	}
+
 	if len(mtdata.Interval) > 0 {
 		whereStr += "  and starttime >= NOW() - INTERVAL '" + mtdata.Interval + "'"
 	}
