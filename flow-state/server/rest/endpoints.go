@@ -19,6 +19,7 @@ import (
 const (
 	Flogo_UserName      = "username"
 	FLOGO_APPNAME       = "app"
+	FLOGO_APPVERSION    = "version"
 	FLOGO_HOSTNAME      = "host"
 	FLOGO_FlowName      = "flow"
 	Flow_Status         = "status"
@@ -26,6 +27,7 @@ const (
 	Flow_Completed_Mode = "completed"
 	OFFSET              = "offset"
 	LIMIT               = "limit"
+	INTERVAL            = "interval"
 )
 
 type ServiceEndpoints struct {
@@ -81,15 +83,22 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 
 	appName := request.URL.Query().Get(FLOGO_APPNAME)
 	if len(appName) <= 0 {
-		http.Error(response, "Please provider app id or app name", http.StatusBadRequest)
+		http.Error(response, "Please provide app name", http.StatusBadRequest)
+		return
+	}
+
+	appVersion := request.URL.Query().Get(FLOGO_APPVERSION)
+	if len(appVersion) <= 0 {
+		http.Error(response, "Please provide app version", http.StatusBadRequest)
 		return
 	}
 
 	metadata := &metadata.Metadata{
-		Username: userName,
-		AppId:    appName,
-		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
-		FlowName: request.URL.Query().Get(FLOGO_FlowName),
+		Username:   userName,
+		AppName:    appName,
+		AppVersion: appVersion,
+		HostId:     request.URL.Query().Get(FLOGO_HOSTNAME),
+		FlowName:   request.URL.Query().Get(FLOGO_FlowName),
 	}
 
 	offsetValue := request.URL.Query().Get(OFFSET)
@@ -107,6 +116,11 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 	status := request.URL.Query().Get(Flow_Status)
 	if len(status) > 0 {
 		metadata.Status = status
+	}
+
+	interval := request.URL.Query().Get(INTERVAL)
+	if len(interval) > 0 {
+		metadata.Interval = interval
 	}
 	/*if len(status) > 0 && mode == Flow_Failed_Mode {
 		instances, err = se.stepStore.GetFailedFlows(metadata)
@@ -151,10 +165,11 @@ func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *h
 	}
 
 	metadata := &metadata.Metadata{
-		Username: userName,
-		AppId:    request.URL.Query().Get(FLOGO_APPNAME),
-		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
-		FlowName: request.URL.Query().Get(FLOGO_FlowName),
+		Username:   userName,
+		AppName:    request.URL.Query().Get(FLOGO_APPNAME),
+		AppVersion: request.URL.Query().Get(FLOGO_APPVERSION),
+		HostId:     request.URL.Query().Get(FLOGO_HOSTNAME),
+		FlowName:   request.URL.Query().Get(FLOGO_FlowName),
 	}
 
 	instance, err := se.stepStore.GetFlow(flowId, metadata)
@@ -299,14 +314,21 @@ func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *
 
 	appName := request.URL.Query().Get(FLOGO_APPNAME)
 	if len(appName) <= 0 {
-		http.Error(response, "Please provider app id or app name", http.StatusBadRequest)
+		http.Error(response, "Please provide app name", http.StatusBadRequest)
+		return
+	}
+
+	appVersion := request.URL.Query().Get(FLOGO_APPVERSION)
+	if len(appVersion) <= 0 {
+		http.Error(response, "Please provide app version", http.StatusBadRequest)
 		return
 	}
 
 	metadata := &metadata.Metadata{
-		Username: userName,
-		AppId:    appName,
-		HostId:   request.URL.Query().Get(FLOGO_HOSTNAME),
+		Username:   userName,
+		AppName:    appName,
+		AppVersion: appVersion,
+		HostId:     request.URL.Query().Get(FLOGO_HOSTNAME),
 	}
 	flownames, err := se.stepStore.GetFlowNames(metadata)
 	if err != nil {

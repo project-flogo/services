@@ -3,7 +3,7 @@ package metadata
 import "github.com/project-flogo/flow/state"
 
 type Metadata struct {
-	Username, AppId, HostId, FlowName, Offset, Limit, Status string
+	Username, AppName, AppVersion, HostId, FlowName, Offset, Limit, Status, Interval string
 }
 
 type FlowRecord struct {
