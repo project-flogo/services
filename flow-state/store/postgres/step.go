@@ -60,10 +60,15 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 	}
 	whereStr += " userId='" + metadata.Username + "'"
 
-	if len(metadata.AppId) < 0 {
-		return nil, fmt.Errorf("please provide flow id or flow name")
+	if len(metadata.AppName) < 0 {
+		return nil, fmt.Errorf("please provide App name")
 	}
-	whereStr += "  and appId='" + metadata.AppId + "'"
+	whereStr += "  and appName='" + metadata.AppName + "'"
+
+	if len(metadata.AppVersion) < 0 {
+		return nil, fmt.Errorf("please provide App Version")
+	}
+	whereStr += "  and appVersion='" + metadata.AppVersion + "'"
 
 	if len(metadata.HostId) > 0 {
 		whereStr += "  and hostId='" + metadata.HostId + "'"
@@ -106,10 +111,15 @@ func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.Flo
 	}
 	whereStr += " userId='" + metadata.Username + "'"
 
-	if len(metadata.AppId) < 0 {
-		return nil, fmt.Errorf("please provide flow id or flow name")
+	if len(metadata.AppName) < 0 {
+		return nil, fmt.Errorf("please provide App name")
 	}
-	whereStr += "  and appId='" + metadata.AppId + "'"
+	whereStr += "  and appName='" + metadata.AppName + "'"
+
+	if len(metadata.AppVersion) < 0 {
+		return nil, fmt.Errorf("please provide App Version")
+	}
+	whereStr += "  and appVersion='" + metadata.AppVersion + "'"
 
 	if len(metadata.HostId) > 0 {
 		whereStr += "  and hostId='" + metadata.HostId + "'"
@@ -152,10 +162,15 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 	}
 	whereStr += " userId='" + metadata.Username + "'"
 
-	if len(metadata.AppId) < 0 {
-		return nil, fmt.Errorf("please provide App id or App name")
+	if len(metadata.AppName) < 0 {
+		return nil, fmt.Errorf("please provide App name")
 	}
-	whereStr += "  and appId='" + metadata.AppId + "'"
+	whereStr += "  and appName='" + metadata.AppName + "'"
+
+	if len(metadata.AppVersion) < 0 {
+		return nil, fmt.Errorf("please provide App Version")
+	}
+	whereStr += "  and appVersion='" + metadata.AppVersion + "'"
 
 	if len(metadata.HostId) > 0 {
 		whereStr += "  and hostId='" + metadata.HostId + "'"
@@ -211,10 +226,15 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 	}
 	whereStr += " userId='" + mtdata.Username + "'"
 
-	if len(mtdata.AppId) < 0 {
-		return nil, fmt.Errorf("please provide App id or App name")
+	if len(mtdata.AppName) < 0 {
+		return nil, fmt.Errorf("please provide App name")
 	}
-	whereStr += "  and appId='" + mtdata.AppId + "'"
+	whereStr += "  and appName='" + mtdata.AppName + "'"
+
+	if len(mtdata.AppVersion) < 0 {
+		return nil, fmt.Errorf("please provide App Version")
+	}
+	whereStr += "  and appVersion='" + mtdata.AppVersion + "'"
 
 	if len(mtdata.HostId) > 0 {
 		whereStr += "  and hostId='" + mtdata.HostId + "'"
@@ -228,12 +248,20 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		whereStr += "  and status='" + mtdata.Status + "'"
 	}
 
+	if len(mtdata.FlowInstanceId) > 0 {
+		whereStr += "  and flowinstanceid='" + mtdata.FlowInstanceId + "'"
+	}
+
+	if len(mtdata.Interval) > 0 {
+		whereStr += "  and starttime >= NOW() - INTERVAL '" + mtdata.Interval + "'"
+	}
+
 	if len(mtdata.Offset) > 0 && len(mtdata.Limit) > 0 {
 		offsetLimitStr := "  offset '" + mtdata.Offset + "'  limit  '" + mtdata.Limit + "'"
 		whereStr += offsetLimitStr
 	}
-	fmt.Println("select flowinstanceid, flowname, status, hostid, starttime, endtime, count(*) over() AS full_count from flowstate " + whereStr)
-	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+	fmt.Println("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate " + whereStr)
+	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -250,14 +278,16 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		hostid, _ := coerce.ToString(m["hostid"])
 		starttime, _ := coerce.ToString(m["starttime"])
 		endtime, _ := coerce.ToString(m["endtime"])
+		executiontime, _ := coerce.ToString(m["executiontime"])
 		count, _ = coerce.ToInt32(m["full_count"])
 		info := &state.FlowInfo{
-			Id:         id,
-			FlowName:   flowName,
-			HostId:     hostid,
-			FlowStatus: status,
-			StartTime:  starttime,
-			EndTime:    endtime,
+			Id:            id,
+			FlowName:      flowName,
+			HostId:        hostid,
+			FlowStatus:    status,
+			StartTime:     starttime,
+			EndTime:       endtime,
+			ExecutionTime: executiontime,
 		}
 		flowinfo = append(flowinfo, info)
 	}
@@ -275,10 +305,12 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 		whereStr += " and userId='" + metadata.Username + "'"
 	}
 
-	if len(metadata.AppId) > 0 {
-		whereStr += "  and appId='" + metadata.AppId + "'"
+	if len(metadata.AppName) > 0 {
+		whereStr += "  and appName='" + metadata.AppName + "'"
 	}
-
+	if len(metadata.AppVersion) > 0 {
+		whereStr += "  and appVersion='" + metadata.AppVersion + "'"
+	}
 	if len(metadata.HostId) > 0 {
 		whereStr += "  and hostId='" + metadata.HostId + "'"
 	}
@@ -316,9 +348,11 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 	if len(metadata.Username) > 0 {
 		whereStr += " userId='" + metadata.Username + "'"
 	}
-
-	if len(metadata.AppId) > 0 {
-		whereStr += "  and appId='" + metadata.AppId + "'"
+	if len(metadata.AppName) > 0 {
+		whereStr += "  and appName='" + metadata.AppName + "'"
+	}
+	if len(metadata.AppVersion) > 0 {
+		whereStr += "  and appVersion='" + metadata.AppVersion + "'"
 	}
 
 	if len(metadata.HostId) > 0 {
