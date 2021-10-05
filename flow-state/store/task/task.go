@@ -22,7 +22,8 @@ type Task struct {
 	FlowStatus flowEvent.Status       `json:"flow_status"`
 	StartTask  bool                   `json:"startTask"`
 	//For subflow
-	NewSubflow bool `json:"newSubflow, omitempty"`
+	NewSubflow bool   `json:"newSubflow, omitempty"`
+	Flowname   string `json:"flowname"`
 }
 
 type Link struct {
@@ -94,6 +95,7 @@ func flowChangeToTask(stepId, subflowId int, flowChange *change.Flow, incluedRea
 	task := &Task{StepId: stepId}
 	task.SubflowId = subflowId
 	task.Id = flowChange.TaskId
+	task.Flowname = flowChange.FlowURI
 	if flowChange.NewFlow {
 		task.Output = attrToOutput(flowChange.Attrs)
 		task.StartTask = true
