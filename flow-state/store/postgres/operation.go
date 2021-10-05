@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"strconv"
+	"time"
+
 	"github.com/project-flogo/flow/state"
 	task2 "github.com/project-flogo/services/flow-state/store/task"
-	"time"
 )
 
 const (
@@ -15,7 +17,7 @@ const (
 	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9);"
 	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2, executiontime=(EXTRACT(EPOCH FROM ($1 - starttime)))*1000 where flowinstanceid = $3;"
 
-	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 )
 
 type StatefulDB struct {
@@ -37,16 +39,19 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	//hostID := step.HostId
 	stepId := step.Id
 	tasks, err := task2.StepToTask(step)
-	var status, taskName string
+	var status, taskName, subflowid, flowname string
 	if len(tasks) > 1 {
-		for _, task := range tasks {
-			taskName = task.Id
-			status += "," + string(task.Status)
-		}
+		task := tasks[len(tasks)-1]
+		status = string(task.Status)
+		taskName = task.Id
+		subflowid = strconv.Itoa(task.SubflowId)
+		flowname = task.Flowname
 	} else {
 		if len(tasks) == 1 {
 			status = string(tasks[0].Status)
 			taskName = string(tasks[0].Id)
+			subflowid = strconv.Itoa(tasks[0].SubflowId)
+			flowname = tasks[0].Flowname
 		}
 	}
 
@@ -57,7 +62,7 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	}
 	stepData := decodeBytes(b)
 
-	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, time.Now(), time.Now(), stepData}
+	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, time.Now(), time.Now(), stepData, subflowid, flowname}
 	return s.insert(UpsertSteps, inputArgs)
 }
 
