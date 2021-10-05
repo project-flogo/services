@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/project-flogo/flow/state"
@@ -40,19 +42,17 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	stepId := step.Id
 	tasks, err := task2.StepToTask(step)
 	var status, taskName, subflowid, flowname string
-	if len(tasks) > 1 {
-		task := tasks[len(tasks)-1]
-		status = string(task.Status)
-		taskName = task.Id
-		subflowid = strconv.Itoa(task.SubflowId)
-		flowname = task.Flowname
-	} else {
-		if len(tasks) == 1 {
-			status = string(tasks[0].Status)
-			taskName = string(tasks[0].Id)
-			subflowid = strconv.Itoa(tasks[0].SubflowId)
-			flowname = tasks[0].Flowname
+
+	if len(tasks) > 0 {
+		status = string(tasks[0].Status)
+		taskName = string(tasks[0].Id)
+		subflowid = strconv.Itoa(tasks[0].SubflowId)
+		flowname = tasks[0].Flowname
+		if strings.Contains(flowname, ":") {
+			flowname = flowname[strings.LastIndex(flowname, ":")+1:]
 		}
+	} else {
+		return nil, fmt.Errorf("No Tasks Found")
 	}
 
 	//startTime := step.
