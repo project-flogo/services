@@ -490,7 +490,7 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
-	set, err := s.db.query("select stepid, taskname, status, starttime from steps where flowinstanceid = '"+flowId+"'", nil)
+	set, err := s.db.query("select stepid, taskname, status, starttime, flowname from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -507,6 +507,9 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 		name, _ := coerce.ToString(m["taskname"])
 		stepData["taskName"] = name
+
+		flowname, _ := coerce.ToString(m["flowname"])
+		stepData["flowname"] = flowname
 
 		strttime, _ := coerce.ToString(m["starttime"])
 		stepData["starttime"] = strttime
