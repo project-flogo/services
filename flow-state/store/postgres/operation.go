@@ -5,12 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/project-flogo/flow/state"
+	task2 "github.com/project-flogo/services/flow-state/store/task"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/project-flogo/flow/state"
-	task2 "github.com/project-flogo/services/flow-state/store/task"
 )
 
 const (
@@ -19,8 +18,12 @@ const (
 	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9);"
 	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2, executiontime=(EXTRACT(EPOCH FROM ($1 - starttime)))*1000 where flowinstanceid = $3;"
 
-	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	UpsertSteps              = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	UpsertStepsWithStartTime = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	UpsertStepsWithEndTime   = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, endtime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 )
+
+var nilTime = time.Time{}
 
 type StatefulDB struct {
 	db *sql.DB
@@ -61,9 +64,20 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 		return nil, err
 	}
 	stepData := decodeBytes(b)
+	var query string
+	var inputArgs []interface{}
+	if step.StartTime == nilTime {
+		query = UpsertStepsWithEndTime
+		inputArgs = []interface{}{step.FlowId, stepId, taskName, status, step.EndTime, stepData, subflowid, flowname}
+	} else if step.EndTime == nilTime {
+		query = UpsertStepsWithStartTime
+		inputArgs = []interface{}{step.FlowId, stepId, taskName, status, step.StartTime, stepData, subflowid, flowname}
+	} else {
+		query = UpsertSteps
+		inputArgs = []interface{}{step.FlowId, stepId, taskName, status, step.StartTime, step.EndTime, stepData, subflowid, flowname}
+	}
 
-	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, time.Now(), time.Now(), stepData, subflowid, flowname}
-	return s.insert(UpsertSteps, inputArgs)
+	return s.insert(query, inputArgs)
 }
 
 func (s *StatefulDB) insert(insertSql string, inputArgs []interface{}) (results *ResultSet, err error) {
