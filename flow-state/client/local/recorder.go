@@ -38,6 +38,7 @@ func (sr *StateRecorder) Name() string {
 // Start implements util.Managed.Start()
 func (sr *StateRecorder) Start() error {
 	// no-op
+	sr.stepStore = store.RegistedStore()
 	return nil
 }
 
@@ -49,7 +50,6 @@ func (sr *StateRecorder) Stop() error {
 
 // Init implements services.StateRecorderService.Init()
 func (sr *StateRecorder) init(settings map[string]interface{}) {
-	sr.stepStore = store.RegistedStore()
 }
 
 func (sr *StateRecorder) RecordStart(state *state.FlowState) error {
