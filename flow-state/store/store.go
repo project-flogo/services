@@ -1,8 +1,7 @@
 package store
 
 import (
-	"os"
-
+	"fmt"
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/store/mem"
 	"github.com/project-flogo/services/flow-state/store/metadata"
@@ -11,14 +10,12 @@ import (
 )
 
 const (
-	Memory     = "Memory"
+	Memory     = "memory"
 	File       = "File"
 	DynamoDB   = "dynamodb"
 	CosmosDB   = "cosmosdb"
 	RestServer = "REST"
-	Postgres   = "Postgres"
-
-	StoreType = "FLOGO_STATEFUL_STORE_TYPE"
+	Postgres   = "postgres"
 )
 
 type Store interface {
@@ -57,23 +54,26 @@ func RegistedStore() Store {
 }
 
 func InitStorage(settings map[string]interface{}) error {
-	switch getStoreType() {
+
+	if len(settings) == 0 {
+		//Default set to mem
+		store = mem.NewStore()
+		return nil
+	}
+
+	persistenceType := settings["type"]
+	switch persistenceType {
 	case Postgres:
+		fmt.Println("Store type is: Postgres")
 		var err error
 		store, err = postgres.NewStore(settings)
 		if err != nil {
 			return err
 		}
 	case Memory:
+		fmt.Println("Store type is: Memory")
+
 		store = mem.NewStore()
 	}
 	return nil
-}
-
-func getStoreType() string {
-	v, ok := os.LookupEnv(StoreType)
-	if !ok {
-		return Postgres
-	}
-	return v
 }
