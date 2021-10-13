@@ -3,12 +3,13 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
-	flowEvent "github.com/project-flogo/flow/support/event"
-	"github.com/project-flogo/services/flow-state/event"
-	"github.com/project-flogo/services/flow-state/store/metadata"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	flowEvent "github.com/project-flogo/flow/support/event"
+	"github.com/project-flogo/services/flow-state/event"
+	"github.com/project-flogo/services/flow-state/store/metadata"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/project-flogo/core/support/log"
@@ -63,6 +64,7 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/snapshot", sm.getSnapshot)
 	router.GET("/v1/instances/:flowId/snapshot/:stepId", sm.getSnapshotAtStep)
 	router.DELETE("/v1/instances/:flowId", sm.deleteInstance)
+	router.DELETE("/v1/instances/:flowId/step/:stepId", sm.deleteSteps)
 	router.GET("/v1/instances/:flowId/failedtask", sm.getFaildTaskStepId)
 
 	if exposeRecorder {
@@ -287,6 +289,20 @@ func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, reques
 		se.logger.Error(err.Error())
 	}
 }
+
+func (se *ServiceEndpoints) deleteSteps(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	flowId := params.ByName("flowId")
+	stepId := params.ByName("stepId")
+	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	err := se.stepStore.DeleteSteps(flowId, stepId)
+	if err != nil {
+		http.Error(response, "get error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+}
+
 func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	stepid := params.ByName("stepId")

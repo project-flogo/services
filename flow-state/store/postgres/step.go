@@ -378,6 +378,11 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 	return err
 }
 
+func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
+	_, err := s.db.DeleteSteps(flowId, stepId)
+	return err
+}
+
 func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
@@ -490,7 +495,7 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
-	set, err := s.db.query("select stepid, taskname, status, starttime, flowname from steps where flowinstanceid = '"+flowId+"'", nil)
+	set, err := s.db.query("select stepid, taskname, status, starttime, flowname from steps where flowinstanceid = '"+flowId+"' and stepid != '0' ", nil)
 	if err != nil {
 		return nil, err
 	}

@@ -5,19 +5,21 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/project-flogo/flow/state"
-	task2 "github.com/project-flogo/services/flow-state/store/task"
 	"strconv"
 	"strings"
+
+	"github.com/project-flogo/flow/state"
+	task2 "github.com/project-flogo/services/flow-state/store/task"
 )
 
 const (
-	STEP_INSERT      = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
-	SNAPSHOT_INSERT  = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
-	FlowState_INSERT = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9);"
-	UpdateFlowState  = "UPDATE flowstate set endtime=$1,status=$2, executiontime=(EXTRACT(EPOCH FROM ($1 - starttime)))*1000 where flowinstanceid = $3;"
+	STEP_INSERT            = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
+	SNAPSHOT_INSERT        = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
+	FlowState_UPSERT_RERUN = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;\n"
+	UpdateFlowState        = "UPDATE flowstate set endtime=$1,status=$2, executiontime=(EXTRACT(EPOCH FROM ($1 - starttime)))*1000 where flowinstanceid = $3;"
 
-	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname, rerun) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9, $10) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
+	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and stepid >= $2"
 )
 
 type StatefulDB struct {
@@ -26,7 +28,7 @@ type StatefulDB struct {
 
 func (s *StatefulDB) InsertFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
 	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
-	return s.insert(FlowState_INSERT, inputArgs)
+	return s.insert(FlowState_UPSERT_RERUN, inputArgs)
 }
 
 func (s *StatefulDB) UpdateFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
@@ -40,6 +42,7 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	stepId := step.Id
 	tasks, err := task2.StepToTask(step)
 	var status, taskName, subflowid, flowname string
+	rerun := step.Rerun
 
 	if len(tasks) > 0 {
 		status = string(tasks[0].Status)
@@ -59,8 +62,12 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 		return nil, err
 	}
 	stepData := decodeBytes(b)
-	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, step.StartTime, step.EndTime, stepData, subflowid, flowname}
+	inputArgs := []interface{}{step.FlowId, stepId, taskName, status, step.StartTime, step.EndTime, stepData, subflowid, flowname, rerun}
 	return s.insert(UpsertSteps, inputArgs)
+}
+func (s *StatefulDB) DeleteSteps(flowId string, stepId string) (results *ResultSet, err error) {
+	inputArgs := []interface{}{flowId, stepId}
+	return s.delete(DeleteSteps, inputArgs)
 }
 
 func (s *StatefulDB) insert(insertSql string, inputArgs []interface{}) (results *ResultSet, err error) {
@@ -118,6 +125,29 @@ func (s *StatefulDB) query(querySql string, inputArgs []interface{}) (results *R
 	}
 
 	logCache.Debug("----------- DB Stats in query activity -----------")
+	rows, err := stmt.Query(inputArgs...)
+	if err != nil {
+		logCache.Errorf("Executing prepared query got error: %s", err)
+		// stmt.Close()
+		return nil, err
+	}
+	if rows == nil {
+		return nil, nil
+	}
+	defer rows.Close()
+	return UnmarshalRows(rows)
+}
+
+func (s *StatefulDB) delete(deleteSql string, inputArgs []interface{}) (results *ResultSet, err error) {
+
+	// log.Debug("prepared insert [%s]", prepared)
+	stmt, err := s.getStepStatement(deleteSql)
+	if err != nil {
+		logCache.Errorf("Failed to prepare statement: %s", err)
+		return nil, err
+	}
+
+	logCache.Debug("----------- DB Stats in Delete activity -----------")
 	rows, err := stmt.Query(inputArgs...)
 	if err != nil {
 		logCache.Errorf("Executing prepared query got error: %s", err)

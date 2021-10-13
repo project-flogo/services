@@ -36,6 +36,7 @@ type Store interface {
 	GetSnapshot(flowId string) *state.Snapshot
 	RecordStart(step *state.FlowState) error
 	RecordEnd(step *state.FlowState) error
+	DeleteSteps(flowId string, stepId string) error
 }
 
 //type SnapshotStore interface {
