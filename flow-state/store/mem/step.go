@@ -227,3 +227,7 @@ func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
 	return nil
 }
+
+func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
+	return nil
+}

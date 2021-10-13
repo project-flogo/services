@@ -378,6 +378,11 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 	return err
 }
 
+func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
+	_, err := s.db.DeleteSteps(flowId, stepId)
+	return err
+}
+
 func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
