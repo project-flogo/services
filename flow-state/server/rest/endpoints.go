@@ -478,11 +478,13 @@ func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *htt
 		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
 		return
 	}
-
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusAccepted)
+	se.logger.Debug("Response sent with StatusAccepted.")
+	go func() {
 	step := &state.FlowState{}
 	err = json.Unmarshal(content, step)
 	if err != nil {
-		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
 		se.logger.Debugf("Endpoint[POST:/instances/start] : Step content - %s ", string(content))
 		se.logger.Errorf("Endpoint[POST:/instances/start] : Error unmarshalling step - %v", err)
 		return
@@ -490,13 +492,10 @@ func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *htt
 
 	err = se.stepStore.RecordStart(step)
 	if err != nil {
-		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
 		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
 		return
 	}
-
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
+	}()
 }
 
 func (se *ServiceEndpoints) saveStep(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
@@ -508,11 +507,14 @@ func (se *ServiceEndpoints) saveStep(response http.ResponseWriter, request *http
 		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
 		return
 	}
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusAccepted)
+	se.logger.Debug("Response sent with StatusAccepted.")
 
+	go func() {
 	step := &state.Step{}
 	err = json.Unmarshal(content, step)
 	if err != nil {
-		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
 		se.logger.Debugf("Endpoint[POST:/instances/steps] : Step content - %s ", string(content))
 		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error unmarshalling step - %v", err)
 		return
@@ -520,13 +522,10 @@ func (se *ServiceEndpoints) saveStep(response http.ResponseWriter, request *http
 
 	err = se.stepStore.SaveStep(step)
 	if err != nil {
-		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
 		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
 		return
 	}
-
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
+	}()
 }
 
 func (se *ServiceEndpoints) saveSnapshot(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
@@ -538,11 +537,14 @@ func (se *ServiceEndpoints) saveSnapshot(response http.ResponseWriter, request *
 		se.logger.Error("Endpoint[POST:/instances/snapshot] : %v", err)
 		return
 	}
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusAccepted)
+	se.logger.Debug("Response sent with StatusAccepted.")
 
+	go func() {
 	snapshot := &state.Snapshot{SnapshotBase: &state.SnapshotBase{}}
 	err = json.Unmarshal(content, snapshot)
 	if err != nil {
-		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal snapshot json"))
 		se.logger.Debugf("Endpoint[POST:/instances/snapshot] : Snapshot content - %s ", string(content))
 		se.logger.Errorf("Endpoint[POST:/instances/snapshot] : Error unmarshalling snapshot - %v", err)
 		return
@@ -550,13 +552,10 @@ func (se *ServiceEndpoints) saveSnapshot(response http.ResponseWriter, request *
 
 	err = se.stepStore.SaveSnapshot(snapshot)
 	if err != nil {
-		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save snapshot"))
 		se.logger.Errorf("Endpoint[POST:/instances/snapshot] : Error saving snapshot - %v", err)
 		return
 	}
-
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
+	}()
 }
 
 func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
@@ -568,11 +567,14 @@ func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.
 		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
 		return
 	}
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusAccepted)
+	se.logger.Debug("Response sent with StatusAccepted.")
 
+	go func() {
 	step := &state.FlowState{}
 	err = json.Unmarshal(content, step)
 	if err != nil {
-		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
 		se.logger.Debugf("Endpoint[POST:/instances/steps] : Step content - %s ", string(content))
 		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error unmarshalling step - %v", err)
 		return
@@ -580,13 +582,10 @@ func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.
 
 	err = se.stepStore.RecordEnd(step)
 	if err != nil {
-		se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
 		se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
 		return
 	}
-
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
+	}()
 }
 
 type StateError struct {
