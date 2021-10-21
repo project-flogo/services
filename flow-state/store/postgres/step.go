@@ -1,12 +1,16 @@
 package postgres
 
 import (
+	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/project-flogo/core/data/coerce"
+	metadata2 "github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/flow/state"
 	"github.com/project-flogo/services/flow-state/store/metadata"
 	"github.com/project-flogo/services/flow-state/store/task"
@@ -17,7 +21,7 @@ func NewStore(settings map[string]interface{}) (*StepStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StepStore{db: &StatefulDB{db: db}}, err
+	return &StepStore{db: &StatefulDB{db: db}, settings: settings}, err
 }
 
 type StepStore struct {
@@ -27,6 +31,7 @@ type StepStore struct {
 	appId          string
 	stepContainers map[string]*stepContainer
 	snapshots      sync.Map
+	settings       map[string]interface{}
 }
 
 func (s *StepStore) GetStatus(flowId string) int {
@@ -375,11 +380,23 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
+		if s.RetryDBConnection() == nil {
+			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  InsertSteps after successful connection retry  ")
+			_, err = s.db.InsertSteps(step)
+		}
+	}
 	return err
 }
 
 func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
 	_, err := s.db.DeleteSteps(flowId, stepId)
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
+		if s.RetryDBConnection() == nil {
+			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  InsertSteps after successful connection retry  ")
+			_, err = s.db.DeleteSteps(flowId, stepId)
+		}
+	}
 	return err
 }
 
@@ -590,10 +607,70 @@ func (s *StepStore) GetSnapshot(flowId string) *state.Snapshot {
 
 func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 	_, err := s.db.InsertFlowState(flowState)
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
+		if s.RetryDBConnection() == nil {
+			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  RecordStart after successful connection retry  ")
+			_, err = s.db.InsertFlowState(flowState)
+		}
+	}
 	return err
 }
 
 func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
 	_, err := s.db.UpdateFlowState(flowState)
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
+		if s.RetryDBConnection() == nil {
+			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  RecordEnd after successful connection retry  ")
+			_, err = s.db.UpdateFlowState(flowState)
+		}
+	}
 	return err
+}
+
+func (s *StepStore) RetryDBConnection() error {
+	conSetting := &pgConnection{}
+	err := metadata2.MapToStruct(s.settings, conSetting, false)
+
+	if err != nil {
+		return err
+	}
+	logCache.Info("Trying to ping the database server...")
+	dbConnected := 0
+	err = s.db.db.Ping()
+	// retry attempt on ping only for conn refused and driver bad conn
+	if err != nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			logCache.Info("Failed to ping the database server, trying again...")
+			for i := 1; i <= conSetting.MaxConnRetryAttempts; i++ {
+				logCache.Infof("Connecting to database server... Attempt-[%d]", i)
+				// retry delay
+				time.Sleep(time.Duration(conSetting.ConnRetryDelay) * time.Second)
+				err = s.db.db.Ping()
+				if err != nil {
+					if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+						continue
+					} else {
+						return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
+					}
+				} else {
+					// ping succesful
+					dbConnected = 1
+					logCache.Infof("Successfully connected to database server in attempt-[%d]", i)
+					break
+				}
+			}
+			if dbConnected == 0 {
+				logCache.Errorf("Could not connect to database server after %d number of max retry attempts", conSetting.MaxConnRetryAttempts)
+				return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
+			}
+		} else {
+			return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
+		}
+	} else {
+		logCache.Info("ping to database server is successful...")
+	}
+	if dbConnected != 0 {
+		logCache.Info("Successfully connected to database server")
+	}
+	return nil
 }
