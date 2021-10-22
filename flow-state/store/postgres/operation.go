@@ -19,7 +19,7 @@ const (
 	UpdateFlowState        = "UPDATE flowstate set endtime=$1,status=$2, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $3;"
 
 	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname, rerun) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9, $10) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
-	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and stepid >= $2"
+	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and CAST(stepid as INTEGER) >= $2"
 )
 
 type StatefulDB struct {
@@ -66,7 +66,11 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	return s.insert(UpsertSteps, inputArgs)
 }
 func (s *StatefulDB) DeleteSteps(flowId string, stepId string) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowId, stepId}
+	intStepId, err := strconv.Atoi(stepId)
+	if err != nil {
+		return nil, fmt.Errorf("Error while converting stepid to Int: ", err)
+	}
+	inputArgs := []interface{}{flowId, intStepId}
 	return s.delete(DeleteSteps, inputArgs)
 }
 
