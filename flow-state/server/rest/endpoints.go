@@ -165,7 +165,7 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 
 func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
-	se.logger.Debugf("Endpoint[GET:/instances/%s] : Called", flowId)
+	se.logger.Debugf("Endpoint[GET:/instances/%s/details] : Called", flowId)
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
@@ -253,7 +253,7 @@ func (se *ServiceEndpoints) getSteps(response http.ResponseWriter, request *http
 
 func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
-	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	se.logger.Debugf("Endpoint[GET:/instances/%s/steps/status] : Called", flowId)
 	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
 		http.Error(response, "get steps error:"+err.Error(), http.StatusInternalServerError)
@@ -273,7 +273,7 @@ func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request
 
 func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
-	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	se.logger.Debugf("Endpoint[GET:/instances/%s/steps/tasks] : Called", flowId)
 	tasks, err := se.stepStore.GetStepsAsTasks(flowId)
 	if err != nil {
 		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
@@ -294,7 +294,7 @@ func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, reques
 func (se *ServiceEndpoints) deleteSteps(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
 	stepId := params.ByName("stepId")
-	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
+	se.logger.Debugf("Endpoint[GET:/instances/%s/step/%s] : Called", flowId, stepId)
 	err := se.stepStore.DeleteSteps(flowId, stepId)
 	if err != nil {
 		http.Error(response, "get error:"+err.Error(), http.StatusInternalServerError)
@@ -308,7 +308,7 @@ func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter,
 	flowId := params.ByName("flowId")
 	stepid := params.ByName("stepId")
 	taskname := request.URL.Query().Get("taskName")
-	se.logger.Debugf("Endpoint[GET:/instances/%s/stepdataforactivity] : Called", flowId)
+	se.logger.Debugf("Endpoint[GET:/instances/%s/step/%s/taskdata] : Called", flowId, stepid)
 	stepdata, err := se.stepStore.GetStepdataForActivity(flowId, stepid, taskname)
 	if err != nil {
 		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
@@ -327,7 +327,7 @@ func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter,
 }
 
 func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	se.logger.Debugf("Endpoint[GET:/instances] : Called")
+	se.logger.Debugf("Endpoint[GET:/flows] : Called")
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
@@ -436,7 +436,7 @@ func (se *ServiceEndpoints) getSnapshotAtStep(response http.ResponseWriter, requ
 
 func (se *ServiceEndpoints) getFaildTaskStepId(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	flowId := params.ByName("flowId")
-
+	se.logger.Debugf("Endpoint[GET:/instances/%s/failedtask] : Called", flowId)
 	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
 		http.Error(response, "get getSnapshotAtStep error:"+err.Error(), http.StatusInternalServerError)
@@ -471,12 +471,12 @@ func (se *ServiceEndpoints) deleteInstance(response http.ResponseWriter, request
 }
 
 func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
-	se.logger.Debugf("Endpoint[POST:/instances/steps] : Called")
+	se.logger.Debugf("Endpoint[POST:/instances/start] : Called")
 	asyncCalling := request.Header.Get(ASYNC_CALLING_HEADER) == "true"
 	content, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to read body"))
-		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
+		se.logger.Error("Endpoint[POST:/instances/start] : %v", err)
 		return
 	}
 	if asyncCalling {
@@ -495,7 +495,7 @@ func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *htt
 			}
 			err = se.stepStore.RecordStart(step)
 			if err != nil {
-				se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
+				se.logger.Errorf("Endpoint[POST:/instances/start] : Error saving step - %v", err)
 				return
 			}
 		}()
@@ -512,7 +512,7 @@ func (se *ServiceEndpoints) saveStart(response http.ResponseWriter, request *htt
 		err = se.stepStore.RecordStart(step)
 		if err != nil {
 			se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
-			se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
+			se.logger.Errorf("Endpoint[POST:/instances/start] : Error saving step - %v", err)
 			return
 		}
 
@@ -621,12 +621,12 @@ func (se *ServiceEndpoints) saveSnapshot(response http.ResponseWriter, request *
 }
 
 func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.Request, _ httprouter.Params) {
-	se.logger.Debugf("Endpoint[POST:/instances/steps] : Called")
+	se.logger.Debugf("Endpoint[POST:/instances/end] : Called")
 	asyncCalling := request.Header.Get(ASYNC_CALLING_HEADER) == "true"
 	content, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		se.error(response, http.StatusBadRequest, fmt.Errorf("unable to read body"))
-		se.logger.Error("Endpoint[POST:/instances/steps] : %v", err)
+		se.logger.Error("Endpoint[POST:/instances/end] : %v", err)
 		return
 	}
 
@@ -640,13 +640,13 @@ func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.
 			step := &state.FlowState{}
 			err = json.Unmarshal(content, step)
 			if err != nil {
-				se.logger.Debugf("Endpoint[POST:/instances/steps] : Step content - %s ", string(content))
-				se.logger.Errorf("Endpoint[POST:/instances/steps] : Error unmarshalling step - %v", err)
+				se.logger.Debugf("Endpoint[POST:/instances/end] : Step content - %s ", string(content))
+				se.logger.Errorf("Endpoint[POST:/instances/end] : Error unmarshalling step - %v", err)
 				return
 			}
 			err = se.stepStore.RecordEnd(step)
 			if err != nil {
-				se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
+				se.logger.Errorf("Endpoint[POST:/instances/end] : Error saving step - %v", err)
 				return
 			}
 		}()
@@ -655,14 +655,14 @@ func (se *ServiceEndpoints) saveEnd(response http.ResponseWriter, request *http.
 		err = json.Unmarshal(content, step)
 		if err != nil {
 			se.error(response, http.StatusBadRequest, fmt.Errorf("unable to unmarshal step json"))
-			se.logger.Debugf("Endpoint[POST:/instances/steps] : Step content - %s ", string(content))
-			se.logger.Errorf("Endpoint[POST:/instances/steps] : Error unmarshalling step - %v", err)
+			se.logger.Debugf("Endpoint[POST:/instances/end] : Step content - %s ", string(content))
+			se.logger.Errorf("Endpoint[POST:/instances/end] : Error unmarshalling step - %v", err)
 			return
 		}
 		err = se.stepStore.RecordEnd(step)
 		if err != nil {
 			se.error(response, http.StatusInternalServerError, fmt.Errorf("unable to save step"))
-			se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
+			se.logger.Errorf("Endpoint[POST:/instances/end] : Error saving step - %v", err)
 			return
 		}
 		response.Header().Set("Content-Type", "application/json")
