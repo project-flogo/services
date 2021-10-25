@@ -45,7 +45,7 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 		logger:    logger,
 		stepStore: store.RegistedStore(),
 	}
-
+	router.GET("/v1/health", sm.getHealthCheck)
 	router.GET("/v1/instances", sm.getInstances)
 
 	router.GET("/v1/instances/:flowId/details", sm.getInstance)
@@ -73,6 +73,16 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 		router.POST("/v1/instances/steps", sm.saveStep)
 		router.POST("/v1/instances/start", sm.saveStart)
 		router.POST("/v1/instances/end", sm.saveEnd)
+	}
+}
+
+func (se *ServiceEndpoints) getHealthCheck(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	se.logger.Debugf("Endpoint[GET:/health] : Called")
+	switch request.Method {
+	case http.MethodGet:
+		response.WriteHeader(http.StatusOK)
+	default:
+		response.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
