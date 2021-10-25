@@ -1,18 +1,21 @@
 package mem
 
 import (
+	"github.com/project-flogo/services/flow-state/store/mem"
 	"sync"
 
 	"github.com/project-flogo/flow/state"
+	"github.com/project-flogo/services/flow-state/store"
 )
 
-type SnapshotStore struct {
-	userId    string
-	appId     string
-	snapshots sync.Map
+func init() {
+	store.SetSnapshotStore(&DynaSnapshotStore{})
 }
 
-func (s *SnapshotStore) GetStatus(flowId string) int {
+type DynaSnapshotStore struct {
+}
+
+func (s *DynaSnapshotStore) GetStatus(flowId string) int {
 	if snapshot, ok := s.snapshots.Load(flowId); ok {
 		fs := snapshot.(*state.Snapshot)
 		return fs.Status
@@ -20,7 +23,7 @@ func (s *SnapshotStore) GetStatus(flowId string) int {
 	return -1
 }
 
-func (s *SnapshotStore) GetFlow(flowId string) *state.FlowInfo {
+func (s *DynaSnapshotStore) GetFlow(flowId string) *state.FlowInfo {
 	if snapshot, ok := s.snapshots.Load(flowId); ok {
 		fs := snapshot.(*state.Snapshot)
 		return &state.FlowInfo{Id: fs.Id, Status: fs.Status, FlowURI: fs.FlowURI}
@@ -28,7 +31,7 @@ func (s *SnapshotStore) GetFlow(flowId string) *state.FlowInfo {
 	return nil
 }
 
-func (s *SnapshotStore) GetFlows() []*state.FlowInfo {
+func (s *DynaSnapshotStore) GetFlows() []*state.FlowInfo {
 
 	var infos []*state.FlowInfo
 
@@ -41,19 +44,19 @@ func (s *SnapshotStore) GetFlows() []*state.FlowInfo {
 	return infos
 }
 
-func (s *SnapshotStore) SaveSnapshot(snapshot *state.Snapshot) error {
+func (s *DynaSnapshotStore) SaveSnapshot(snapshot *state.Snapshot) error {
 	//replaces existing snapshot
 	s.snapshots.Store(snapshot.Id, snapshot)
 	return nil
 }
 
-func (s *SnapshotStore) GetSnapshot(flowId string) *state.Snapshot {
+func (s *DynaSnapshotStore) GetSnapshot(flowId string) *state.Snapshot {
 	if snapshot, ok := s.snapshots.Load(flowId); ok {
 		return snapshot.(*state.Snapshot)
 	}
 	return nil
 }
 
-func (s *SnapshotStore) Delete(flowId string) {
+func (s *DynaSnapshotStore) Delete(flowId string) {
 	s.snapshots.Delete(flowId)
 }

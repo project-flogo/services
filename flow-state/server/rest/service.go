@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	"github.com/project-flogo/services/flow-state/store"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
@@ -9,6 +10,8 @@ import (
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/core/support/service"
 	"github.com/rs/cors"
+
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -18,6 +21,8 @@ const (
 	SettingEnableTLS      = "enableTLS"
 	SettingCertFile       = "certFile"
 	SettingKeyFile        = "keyFile"
+
+	Persistence = "persistence"
 )
 
 var logger = log.ChildLogger(log.RootLogger(), "flow-state")
@@ -88,7 +93,6 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 	if stream, set := settings[SettingStreamingStep]; set {
 		streamingStep, _ = coerce.ToBool(stream)
 	}
-	AppendEndpoints(router, logger, exposeRecorder, streamingStep)
 
 	var options []func(*Server)
 
@@ -111,6 +115,13 @@ func (ss *StateService) init(settings map[string]interface{}) error {
 	}
 
 	options = append(options, Logger(logger))
+
+	persistenceSettings, _ := coerce.ToObject(settings[Persistence])
+	if err := store.InitStorage(persistenceSettings); err != nil {
+		return fmt.Errorf("initialize state service persistence failed, due to [%s]", err.Error())
+	}
+
+	AppendEndpoints(router, logger, exposeRecorder, streamingStep)
 
 	c := cors.New(cors.Options{
 		AllowCredentials: true,

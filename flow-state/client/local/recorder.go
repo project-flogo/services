@@ -27,9 +27,8 @@ func (s StateRecorderFactory) NewService(config *service.Config) (service.Servic
 // StateRecorder is an implementation of StateRecorder service
 // that can access flows via URI
 type StateRecorder struct {
-	stepStore store.StepStore
-	snapshotStore store.SnapshotStore
-	logger  log.Logger
+	stepStore store.Store
+	logger    log.Logger
 }
 
 func (sr *StateRecorder) Name() string {
@@ -39,6 +38,7 @@ func (sr *StateRecorder) Name() string {
 // Start implements util.Managed.Start()
 func (sr *StateRecorder) Start() error {
 	// no-op
+	sr.stepStore = store.RegistedStore()
 	return nil
 }
 
@@ -50,15 +50,22 @@ func (sr *StateRecorder) Stop() error {
 
 // Init implements services.StateRecorderService.Init()
 func (sr *StateRecorder) init(settings map[string]interface{}) {
-	sr.snapshotStore = store.GetSnapshotStore()
-	sr.stepStore = store.GetStepStore()
+}
+
+func (sr *StateRecorder) RecordStart(state *state.FlowState) error {
+	if sr.stepStore != nil {
+		err := sr.stepStore.RecordStart(state)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RecordSnapshot implements instance.StateRecorder.RecordSnapshot
 func (sr *StateRecorder) RecordSnapshot(snapshot *state.Snapshot) error {
-
-	if sr.snapshotStore != nil {
-		err := sr.snapshotStore.SaveSnapshot(snapshot)
+	if sr.stepStore != nil {
+		err := sr.stepStore.SaveSnapshot(snapshot)
 		if err != nil {
 			return err
 		}
@@ -70,6 +77,16 @@ func (sr *StateRecorder) RecordSnapshot(snapshot *state.Snapshot) error {
 func (sr *StateRecorder) RecordStep(step *state.Step) error {
 	if sr.stepStore != nil {
 		err := sr.stepStore.SaveStep(step)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sr *StateRecorder) RecordDone(state *state.FlowState) error {
+	if sr.stepStore != nil {
+		err := sr.stepStore.RecordEnd(state)
 		if err != nil {
 			return err
 		}
