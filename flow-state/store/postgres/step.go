@@ -87,7 +87,16 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetFailedFlows after successful connection retry  ")
+				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	v, _ := json.Marshal(set.Record)
@@ -138,7 +147,16 @@ func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.Flo
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetCompletedFlows after successful connection retry  ")
+				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	v, _ := json.Marshal(set.Record)
@@ -193,10 +211,19 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 		offsetLimitStr := "  offset '" + metadata.Offset + "'  limit  '" + metadata.Limit + "'"
 		whereStr += offsetLimitStr
 	}
-	fmt.Println("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate " + whereStr)
+
 	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate "+whereStr, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetFlows after successful connection retry  ")
+				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	v, _ := json.Marshal(set.Record)
@@ -265,10 +292,20 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		offsetLimitStr := "  offset '" + mtdata.Offset + "'  limit  '" + mtdata.Limit + "'"
 		whereStr += offsetLimitStr
 	}
-	fmt.Println("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate " + whereStr)
+
 	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetFlowsWithRecordCount after successful connection retry  ")
+				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	v, _ := json.Marshal(set.Record)
@@ -322,7 +359,16 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetFlow after successful connection retry  ")
+				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	v, _ := json.Marshal(set.Record)
@@ -366,7 +412,16 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 
 	set, err := s.db.query("select distinct(flowname) from flowstate "+whereStr, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetFlowNames after successful connection retry  ")
+				set, err = s.db.query("select distinct(flowname) from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var flownameArray []string
@@ -382,7 +437,7 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
 		if s.RetryDBConnection() == nil {
-			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  InsertSteps after successful connection retry  ")
+			logCache.Debugf("Retrying from SaveStep after successful connection retry  ")
 			_, err = s.db.InsertSteps(step)
 		}
 	}
@@ -393,7 +448,7 @@ func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
 	_, err := s.db.DeleteSteps(flowId, stepId)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
 		if s.RetryDBConnection() == nil {
-			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  InsertSteps after successful connection retry  ")
+			logCache.Debugf("Retrying from  DeleteSteps after successful connection retry  ")
 			_, err = s.db.DeleteSteps(flowId, stepId)
 		}
 	}
@@ -404,7 +459,16 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetSteps after successful connection retry  ")
+				set, err = s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var steps []*state.Step
@@ -435,7 +499,16 @@ func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetStepsAsTasks after successful connection retry  ")
+				set, err = s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var steps []*state.Step
@@ -479,7 +552,16 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 	}
 	set, err := s.db.query(query, nil)
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetStepdataForActivity after successful connection retry  ")
+				set, err = s.db.query(query, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	var step *state.Step
 	for _, v := range set.Record {
@@ -513,8 +595,18 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 	set, err := s.db.query("select stepid, taskname, status, starttime, flowname, rerun from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
+
 	if err != nil {
-		return nil, err
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetStepsStatus after successful connection retry  ")
+				set, err = s.db.query("select stepid, taskname, status, starttime, flowname, rerun from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var steps []map[string]string
@@ -609,7 +701,7 @@ func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 	_, err := s.db.InsertFlowState(flowState)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
 		if s.RetryDBConnection() == nil {
-			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  RecordStart after successful connection retry  ")
+			logCache.Debug("Retrying from RecordStart after successful connection retry  ")
 			_, err = s.db.InsertFlowState(flowState)
 		}
 	}
@@ -620,7 +712,7 @@ func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
 	_, err := s.db.UpdateFlowState(flowState)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
 		if s.RetryDBConnection() == nil {
-			fmt.Println("&&&&&&&&&&&&&&&&& Retrying to call  RecordEnd after successful connection retry  ")
+			logCache.Debug("Retrying to call  RecordEnd after successful connection retry  ")
 			_, err = s.db.UpdateFlowState(flowState)
 		}
 	}
