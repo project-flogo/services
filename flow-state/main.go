@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -34,24 +33,24 @@ func main() {
 	if _, err := os.Stat(configPath); err == nil {
 		flogo, err := os.Open(configPath)
 		if err != nil {
-			fmt.Errorf("open configuration file error: %s", err.Error())
+			logger.Errorf("open configuration file error: %s", err.Error())
 			os.Exit(1)
 		}
 
 		jsonBytes, err := ioutil.ReadAll(flogo)
 		if err != nil {
-			fmt.Errorf("open configuration file error: %s", err.Error())
+			logger.Errorf("open configuration file error: %s", err.Error())
 			os.Exit(1)
 		}
 
 		err = json.Unmarshal(jsonBytes, &settings)
 		if err != nil {
-			fmt.Errorf("unrecongnized configuration file: %s", err.Error())
+			logger.Errorf("unrecongnized configuration file: %s", err.Error())
 			os.Exit(1)
 		}
 	} else {
 		if err != nil {
-			fmt.Errorf("configuration file [%] not found", configPath)
+			logger.Errorf("Configuration file [%s] for Persistence component not found", configPath)
 			os.Exit(1)
 		}
 	}
