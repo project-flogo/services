@@ -55,6 +55,8 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	// honour the flag value for port
+	settings["port"] = *port
 
 	//for new use REST StateService
 	cfg := &service.Config{
