@@ -99,9 +99,6 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 		}
 	}
 
-	v, _ := json.Marshal(set.Record)
-	fmt.Println(string(v))
-
 	var flowinfo []*state.FlowInfo
 	for _, v := range set.Record {
 		m := *v
@@ -158,9 +155,6 @@ func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.Flo
 			return nil, err
 		}
 	}
-
-	v, _ := json.Marshal(set.Record)
-	fmt.Println(string(v))
 
 	var flowinfo []*state.FlowInfo
 	for _, v := range set.Record {
@@ -225,9 +219,6 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 			return nil, err
 		}
 	}
-
-	v, _ := json.Marshal(set.Record)
-	fmt.Println(string(v))
 
 	var flowinfo []*state.FlowInfo
 	for _, v := range set.Record {
@@ -307,9 +298,6 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 			return nil, err
 		}
 	}
-
-	v, _ := json.Marshal(set.Record)
-	fmt.Println(string(v))
 	var count int32
 	var flowinfo []*state.FlowInfo
 	for _, v := range set.Record {
@@ -370,9 +358,6 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 			return nil, err
 		}
 	}
-
-	v, _ := json.Marshal(set.Record)
-	fmt.Println(string(v))
 
 	var flowinfo []*state.FlowInfo
 	for _, v := range set.Record {
@@ -568,7 +553,6 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 		m := *v
 		s1, err := coerce.ToBytes(m["stepdata"])
 		if err != nil {
-			fmt.Println("error", err)
 			return nil, fmt.Errorf("decodeBase64 for step data error:", err.Error())
 		}
 		dbuf := make([]byte, base64.StdEncoding.DecodedLen(len(s1)))
@@ -594,13 +578,13 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
-	set, err := s.db.query("select stepid, taskname, status, starttime, flowname, rerun from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
+	set, err := s.db.query("select stepid, taskname, status, starttime, flowname, rerun, subflowid from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
 
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
 			if s.RetryDBConnection() == nil {
 				logCache.Debugf("Retrying from GetStepsStatus after successful connection retry  ")
-				set, err = s.db.query("select stepid, taskname, status, starttime, flowname, rerun from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
+				set, err = s.db.query("select stepid, taskname, status, starttime, flowname, rerun, subflowid from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
 			} else {
 				return nil, err
 			}
@@ -627,6 +611,9 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 		rerun, _ := coerce.ToString(m["rerun"])
 		stepData["rerun"] = rerun
+
+		subflowid, _ := coerce.ToString(m["subflowid"])
+		stepData["subflowid"] = subflowid
 
 		strttime, _ := coerce.ToString(m["starttime"])
 		stepData["starttime"] = strttime
