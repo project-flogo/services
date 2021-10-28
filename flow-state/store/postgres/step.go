@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -592,8 +593,9 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 			return nil, err
 		}
 	}
-
+	var waitingSteps []map[string]string
 	var steps []map[string]string
+OUTER:
 	for _, v := range set.Record {
 		m := *v
 		stepData := make(map[string]string)
@@ -617,12 +619,35 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 		strttime, _ := coerce.ToString(m["starttime"])
 		stepData["starttime"] = strttime
+		// before appending check if need to merge with step for startasubflow where status=waiting
+		// find the pair entry where taskname and subflowid is same and previous status is Waiting
+		if strings.EqualFold(status, "completed") || strings.EqualFold(status, "failed") && len(waitingSteps) > 0 {
+			for i, waitingStep := range waitingSteps {
+				if waitingStep["taskName"] == name && waitingStep["subflowid"] == subflowid {
+					// so merge the existing entry as its for corresponding startasubflow
+					for _, existingStepdata := range steps {
+						if reflect.DeepEqual(existingStepdata, waitingStep) {
+							// override value now
+							existingStepdata["status"] = status
+							waitingSteps = append(waitingSteps[:i], waitingSteps[i+1:]...) // now remove the entry of waiting step as status already merged
+							continue OUTER
+						}
+					}
+				}
+			}
+		}
+
 		steps = append(steps, stepData)
+		// add entry into waitingstep for faster check to compare for obly waiting steps
+		if strings.EqualFold(status, "waiting") {
+			waitingSteps = append(waitingSteps, stepData)
+		}
 	}
 
 	if len(steps) <= 0 {
 		return nil, fmt.Errorf("step for flow instance [%s] not found", flowId)
 	}
+
 	return steps, err
 }
 
