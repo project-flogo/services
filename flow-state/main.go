@@ -13,7 +13,7 @@ import (
 	"github.com/project-flogo/services/flow-state/server/rest"
 )
 
-var port = flag.String("p", "9190", "The port of the server")
+var port = flag.String("p", "", "The port of the server")
 
 func init() {
 	flag.Parse() // get the arguments from command line
@@ -26,7 +26,6 @@ func main() {
 	configPath := os.Getenv("FLOGO_STATE_CONFIG")
 	if len(configPath) <= 0 {
 		configPath = "config.json"
-
 	}
 
 	var settings map[string]interface{}
@@ -55,7 +54,9 @@ func main() {
 		}
 	}
 	// honour the flag value for port
-	settings["port"] = *port
+	if *port != "" {
+		settings["port"] = *port
+	}
 
 	//for new use REST StateService
 	cfg := &service.Config{

@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -573,7 +575,59 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 	if err != nil {
 		return nil, err
 	}
-	return taskValue, err
+	// return taskValue, err
+	// if array having 2 tasks + status waiting, and name and subflowid same ( to identify its 'callsubflow' activity), then query stepdata for its enclosing record (failed or completed)
+	//if present and merge the output
+	if len(taskValue) == 2 {
+		firsttask := taskValue[0]
+		taskname1 := firsttask.Id
+		subflowid1 := firsttask.SubflowId
+		status := firsttask.Status
+		if strings.EqualFold(string(status), "waiting") {
+			fmt.Print("subflowid is: ", subflowid1)
+			nextStepId, err := s.GetStepIdOfEnclosingCallSubflow(flowId, taskname1, strconv.Itoa(subflowid1))
+			if err != nil {
+				return nil, err
+			}
+			if nextStepId != "" {
+				taskArray, err := s.GetStepdataForActivity(flowId, nextStepId, taskname1)
+				if err != nil {
+					return nil, err
+				}
+				stepidInt, _ := strconv.Atoi(stepid)
+				taskArray[0].StepId = stepidInt // owner the stepid of starting of subflow
+				return taskArray, err
+			} else {
+				return taskValue, err
+			}
+		} else {
+			return taskValue, err
+		}
+	} else {
+		return taskValue, err
+	}
+}
+
+func (s *StepStore) GetStepIdOfEnclosingCallSubflow(flowid, taskname, subflowid string) (string, error) {
+	set, err := s.db.query("select stepid from steps where taskname = '"+taskname+"' and flowinstanceid= '"+flowid+"' and subflowid= '"+subflowid+"' and status != 'Waiting'", nil)
+	if err != nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetStepIdOfEnclosingCallSubflow after successful connection retry  ")
+				set, err = s.db.query("select stepid from steps where taskname = '"+taskname+"' and flowinstanceid= '"+flowid+"' and subflowid= '"+subflowid+"' and status != 'Waiting'", nil)
+			} else {
+				return "", err
+			}
+		} else {
+			return "", err
+		}
+	}
+	var nextstepid string
+	for _, v := range set.Record {
+		m := *v
+		nextstepid, _ = coerce.ToString(m["stepid"])
+	}
+	return nextstepid, err
 }
 
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
@@ -592,8 +646,9 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 			return nil, err
 		}
 	}
-
+	var waitingSteps []map[string]string
 	var steps []map[string]string
+OUTER:
 	for _, v := range set.Record {
 		m := *v
 		stepData := make(map[string]string)
@@ -617,12 +672,35 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 
 		strttime, _ := coerce.ToString(m["starttime"])
 		stepData["starttime"] = strttime
+		// before appending check if need to merge with step for startasubflow where status=waiting
+		// find the pair entry where taskname and subflowid is same and previous status is Waiting
+		if strings.EqualFold(status, "completed") || strings.EqualFold(status, "failed") && len(waitingSteps) > 0 {
+			for i, waitingStep := range waitingSteps {
+				if waitingStep["taskName"] == name && waitingStep["subflowid"] == subflowid {
+					// so merge the existing entry as its for corresponding startasubflow
+					for _, existingStepdata := range steps {
+						if reflect.DeepEqual(existingStepdata, waitingStep) {
+							// override value now
+							existingStepdata["status"] = status
+							waitingSteps = append(waitingSteps[:i], waitingSteps[i+1:]...) // now remove the entry of waiting step as status already merged
+							continue OUTER
+						}
+					}
+				}
+			}
+		}
+
 		steps = append(steps, stepData)
+		// add entry into waitingstep for faster check to compare for obly waiting steps
+		if strings.EqualFold(status, "waiting") {
+			waitingSteps = append(waitingSteps, stepData)
+		}
 	}
 
 	if len(steps) <= 0 {
 		return nil, fmt.Errorf("step for flow instance [%s] not found", flowId)
 	}
+
 	return steps, err
 }
 
