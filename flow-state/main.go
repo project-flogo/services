@@ -69,13 +69,13 @@ func main() {
 
 	s, err := sf.NewService(cfg)
 	if err != nil {
-		logger.Errorf("Failed to Flow State Service: %v\n", err)
+		logger.Errorf("Failed to start Flow State Manager: %v\n", err)
 		os.Exit(1)
 	}
 
 	err = s.Start()
 	if err != nil {
-		logger.Errorf("Failed to Flow State Service: %v\n", err)
+		logger.Errorf("Failed to start Flow State Manager: %v\n", err)
 		os.Exit(1)
 	}
 
