@@ -584,7 +584,6 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 		subflowid1 := firsttask.SubflowId
 		status := firsttask.Status
 		if strings.EqualFold(string(status), "waiting") {
-			fmt.Print("subflowid is: ", subflowid1)
 			nextStepId, err := s.GetStepIdOfEnclosingCallSubflow(flowId, taskname1, strconv.Itoa(subflowid1))
 			if err != nil {
 				return nil, err
@@ -595,7 +594,7 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 					return nil, err
 				}
 				stepidInt, _ := strconv.Atoi(stepid)
-				taskArray[0].StepId = stepidInt // owner the stepid of starting of subflow
+				taskArray[0].StepId = stepidInt // honour the stepid of starting of subflow
 				return taskArray, err
 			} else {
 				return taskValue, err
