@@ -281,6 +281,8 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		whereStr += "  and starttime >= NOW() - INTERVAL '" + mtdata.Interval + "'"
 	}
 
+	whereStr += " order by starttime desc"
+
 	if len(mtdata.Offset) > 0 && len(mtdata.Limit) > 0 {
 		offsetLimitStr := "  offset '" + mtdata.Offset + "'  limit  '" + mtdata.Limit + "'"
 		whereStr += offsetLimitStr
