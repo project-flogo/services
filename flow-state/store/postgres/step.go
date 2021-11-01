@@ -285,7 +285,7 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		offsetLimitStr := "  offset '" + mtdata.Offset + "'  limit  '" + mtdata.Limit + "'"
 		whereStr += offsetLimitStr
 	}
-
+	whereStr += " order by starttime desc"
 	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
 
 	if err != nil {
