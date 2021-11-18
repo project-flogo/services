@@ -37,10 +37,10 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-flogo/core v1.4.0/go.mod h1:fapTXUhLxDeAHyb6eMkuwnYswO8FpZJAMat055QVdJE=
-github.com/project-flogo/core v1.6.0-rc.2.0.20211025231611-c22e7e011973 h1:37E5EOObuILDCgvhCUPe8ZT2xd5g8UH9cxoeElXGAfk=
-github.com/project-flogo/core v1.6.0-rc.2.0.20211025231611-c22e7e011973/go.mod h1:fapTXUhLxDeAHyb6eMkuwnYswO8FpZJAMat055QVdJE=
-github.com/project-flogo/flow v1.6.0-rc.1.0.20211025232013-2db5148767ab h1:ruCbXwEjsSKnc3+CqMdj1GZrj3kCCc9SkOR1SeeEfu4=
-github.com/project-flogo/flow v1.6.0-rc.1.0.20211025232013-2db5148767ab/go.mod h1:LesZqWPKWub4EZ71+kib74n5MF7ePlVPAuP0DVtRhkI=
+github.com/project-flogo/core v1.6.0 h1:+LH226SGU5961xh5H9lp8iUGp5dWPHaMYGu0pTuSLSE=
+github.com/project-flogo/core v1.6.0/go.mod h1:fapTXUhLxDeAHyb6eMkuwnYswO8FpZJAMat055QVdJE=
+github.com/project-flogo/flow v1.6.0 h1:04La0Tp0QcIuXRXPPncYZ9XwDMLlDdZWxxzQaw92MYg=
+github.com/project-flogo/flow v1.6.0/go.mod h1:LesZqWPKWub4EZ71+kib74n5MF7ePlVPAuP0DVtRhkI=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rs/cors v1.8.0 h1:P2KMzcFwrPoSjkF1WLRPsp3UMLyql8L4v9hQpVeK5so=
 github.com/rs/cors v1.8.0/go.mod h1:EBwu+T5AvHOcXwvZIkQFjUN6s8Czyqw12GL/Y0tUyRM=
