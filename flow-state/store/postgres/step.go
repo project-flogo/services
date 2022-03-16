@@ -281,6 +281,10 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		whereStr += "  and starttime >= NOW() - INTERVAL '" + mtdata.Interval + "'"
 	}
 
+	if len(mtdata.StartTime) > 0 && len(mtdata.EndTime) > 0 {
+		whereStr += "  and starttime >= '" + mtdata.StartTime + "' and starttime <= '" + mtdata.EndTime + "'"
+	}
+
 	whereStr += " order by starttime desc"
 
 	if len(mtdata.Offset) > 0 && len(mtdata.Limit) > 0 {
@@ -420,6 +424,38 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 		flownameArray = append(flownameArray, flowName)
 	}
 	return flownameArray, err
+}
+
+func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error) {
+	var whereStr = "where "
+	if len(metadata.Username) > 0 {
+		whereStr += " userId='" + metadata.Username + "'"
+	}
+	if len(metadata.AppName) > 0 {
+		whereStr += "  and appname='" + metadata.AppName + "'"
+	}
+
+	set, err := s.db.query("select distinct(appVersion) from flowstate "+whereStr, nil)
+	if err != nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetAppVersions after successful connection retry  ")
+				set, err = s.db.query("select distinct(appVersion) from flowstate "+whereStr, nil)
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	var appVersionArray []string
+	for _, v := range set.Record {
+		m := *v
+		appVersion, _ := coerce.ToString(m["appversion"])
+		appVersionArray = append(appVersionArray, appVersion)
+	}
+	return appVersionArray, err
 }
 
 func (s *StepStore) SaveStep(step *state.Step) error {
