@@ -458,6 +458,50 @@ func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error
 	return appVersionArray, err
 }
 
+func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
+	var whereStr = "where "
+	if len(metadata.Username) > 0 {
+		whereStr += " userId='" + metadata.Username + "'"
+	}
+	if len(metadata.AppName) > 0 {
+		whereStr += "  and appname='" + metadata.AppName + "'"
+	}
+	if len(metadata.AppVersion) > 0 {
+		whereStr += "  and appversion='" + metadata.AppVersion + "'"
+	}
+
+	set, err := s.db.query("select persistenceEnabled from appstate "+whereStr, nil)
+	if err != nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+			if s.RetryDBConnection() == nil {
+				logCache.Debugf("Retrying from GetAppState after successful connection retry  ")
+				set, err = s.db.query("select persistenceEnabled from appstate  "+whereStr, nil)
+			} else {
+				return "", err
+			}
+		} else {
+			return "", err
+		}
+	}
+	persistenceEnabled := ""
+	for _, v := range set.Record {
+		m := *v
+		persistenceEnabled, _ = coerce.ToString(m["persistenceenabled"])
+	}
+	return persistenceEnabled, err
+}
+
+func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
+	_, err := s.db.InsertAppState(metadata)
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
+		if s.RetryDBConnection() == nil {
+			logCache.Debug("Retrying from SaveAppState after successful connection retry  ")
+			_, err = s.db.InsertAppState(metadata)
+		}
+	}
+	return err
+}
+
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
