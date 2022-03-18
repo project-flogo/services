@@ -61,7 +61,9 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/apps/:appName/versions", sm.getAppVersions)
 
 	router.GET("/v1/app/state/:app/:version", sm.getAppState)
-	router.POST("/v1/app/state/:app/:version/:toggle", sm.saveAppState)
+	// router.POST("/v1/app/state/:app/:version/:toggle", sm.saveAppState)
+	router.POST("/v1/app/state/:app/:version", sm.saveAppState)
+	router.DELETE("/v1/app/state/:app/:version", sm.saveAppState)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -460,15 +462,25 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	appName := params.ByName(FLOGO_APPNAME)
 	appVersion := params.ByName(FLOGO_APPVERSION)
-	persistEnableString := params.ByName("toggle")
-	se.logger.Debugf("Endpoint[POST:/app/state/%s/%s/%s] : Called", appName, appVersion, persistEnableString)
+	se.logger.Debugf("Endpoint[%s:/app/state/%s/%s] : Called", request.Method, appName, appVersion)
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
-	persistEnable, _ := strconv.ParseBool(persistEnableString)
+
+	persistEnable := false
+	switch request.Method {
+	case http.MethodPost:
+		persistEnable = true
+	case http.MethodDelete:
+		persistEnable = false
+	default:
+		response.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	metadata := &metadata.Metadata{
 		Username:       userName,
 		AppName:        appName,
