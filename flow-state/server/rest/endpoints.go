@@ -31,6 +31,8 @@ const (
 	INTERVAL             = "interval"
 	FLOW_INSTANCE_ID     = "flowinstanceid"
 	ASYNC_CALLING_HEADER = "Async-Calling"
+	START_TIME           = "startTime"
+	END_TIME             = "endTime"
 )
 
 type ServiceEndpoints struct {
@@ -56,6 +58,12 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/instances/:flowId/steps/status", sm.getStepsStatus)
 	router.GET("/v1/instances/:flowId/step/:stepId/taskdata", sm.getStepdataForActivity)
 	router.GET("/v1/flows", sm.getFlowNames)
+	router.GET("/v1/apps/:appName/versions", sm.getAppVersions)
+
+	router.GET("/v1/app/state/:app/:version", sm.getAppState)
+	// router.POST("/v1/app/state/:app/:version/:toggle", sm.saveAppState)
+	router.POST("/v1/app/state/:app/:version", sm.saveAppState)
+	router.DELETE("/v1/app/state/:app/:version", sm.saveAppState)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -140,6 +148,16 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 	interval := request.URL.Query().Get(INTERVAL)
 	if len(interval) > 0 {
 		metadata.Interval = interval
+	}
+
+	startTime := request.URL.Query().Get(START_TIME)
+	if len(startTime) > 0 {
+		metadata.StartTime = startTime
+	}
+
+	endTime := request.URL.Query().Get(END_TIME)
+	if len(endTime) > 0 {
+		metadata.EndTime = endTime
 	}
 	/*if len(status) > 0 && mode == Flow_Failed_Mode {
 		instances, err = se.stepStore.GetFailedFlows(metadata)
@@ -378,6 +396,104 @@ func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *
 	if err := json.NewEncoder(response).Encode(flownames); err != nil {
 		se.logger.Error(err.Error())
 	}
+}
+
+func (se *ServiceEndpoints) getAppVersions(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	appName := params.ByName("appName")
+	se.logger.Debugf("Endpoint[GET:/apps/%s/versions] : Called", appName)
+
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username: userName,
+		AppName:  appName,
+	}
+	appVersions, err := se.stepStore.GetAppVersions(metadata)
+	if err != nil {
+		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	if appVersions == nil || len(appVersions) < 1 {
+		_, _ = response.Write([]byte("[]"))
+		return
+	}
+	if err := json.NewEncoder(response).Encode(appVersions); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
+func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	appName := params.ByName(FLOGO_APPNAME)
+	appVersion := params.ByName(FLOGO_APPVERSION)
+	se.logger.Debugf("Endpoint[GET:/app/state/%s/%s] : Called", appName, appVersion)
+
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username:   userName,
+		AppName:    appName,
+		AppVersion: appVersion,
+	}
+	persEnanbled, err := se.stepStore.GetAppState(metadata)
+	if err != nil {
+		http.Error(response, "Getting getAppState error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(response).Encode(persEnanbled); err != nil {
+		se.logger.Error(err.Error())
+	}
+}
+
+func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	appName := params.ByName(FLOGO_APPNAME)
+	appVersion := params.ByName(FLOGO_APPVERSION)
+	se.logger.Debugf("Endpoint[%s:/app/state/%s/%s] : Called", request.Method, appName, appVersion)
+
+	userName := request.Header.Get(Flogo_UserName)
+	if len(userName) <= 0 {
+		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
+		return
+	}
+
+	persistEnable := false
+	switch request.Method {
+	case http.MethodPost:
+		persistEnable = true
+	case http.MethodDelete:
+		persistEnable = false
+	default:
+		response.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	metadata := &metadata.Metadata{
+		Username:       userName,
+		AppName:        appName,
+		AppVersion:     appVersion,
+		PersistEnabled: persistEnable,
+	}
+	err := se.stepStore.SaveAppState(metadata)
+	if err != nil {
+		http.Error(response, "Getting saveAppState error:"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
 }
 
 func (se *ServiceEndpoints) getSnapshot(response http.ResponseWriter, request *http.Request, params httprouter.Params) {

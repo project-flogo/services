@@ -161,6 +161,18 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 	return nil, nil
 }
 
+func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error) {
+	return nil, nil
+}
+
+func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
+	return "", nil
+}
+
+func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
+	return nil
+}
+
 func (s *StepStore) Delete(flowId string) {
 	s.Lock()
 	delete(s.stepContainers, flowId)
