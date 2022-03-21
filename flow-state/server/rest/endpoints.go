@@ -60,10 +60,9 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/flows", sm.getFlowNames)
 	router.GET("/v1/apps/:appName/versions", sm.getAppVersions)
 
-	router.GET("/v1/app/state/:app", sm.getAppState)
-	// router.POST("/v1/app/state/:app/:version/:toggle", sm.saveAppState)
-	router.POST("/v1/app/state/:app", sm.saveAppState)
-	router.DELETE("/v1/app/state/:app", sm.saveAppState)
+	router.GET("/v1/app/state/:appName", sm.getAppState)
+	router.POST("/v1/app/state/:appName", sm.saveAppState)
+	router.DELETE("/v1/app/state/:appName", sm.saveAppState)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -430,7 +429,7 @@ func (se *ServiceEndpoints) getAppVersions(response http.ResponseWriter, request
 }
 
 func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	appName := params.ByName(FLOGO_APPNAME)
+	appName := params.ByName("appName")
 
 	se.logger.Debugf("Endpoint[GET:/app/state/%s] : Called", appName)
 
@@ -459,7 +458,7 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 }
 
 func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	appName := params.ByName(FLOGO_APPNAME)
+	appName := params.ByName("appName")
 	se.logger.Debugf("Endpoint[%s:/app/state/%s] : Called", request.Method, appName)
 
 	userName := request.Header.Get(Flogo_UserName)
