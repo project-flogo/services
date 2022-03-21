@@ -22,7 +22,7 @@ const (
 	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname, rerun) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9, $10) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and CAST(stepid as INTEGER) >= $2"
 
-	UpsertAppState = "INSERT INTO appstate (userId, appName, appVersion, persistenceenabled) VALUES($1,$2,$3,$4) ON CONFLICT (userId, appName, appVersion) DO UPDATE SET persistenceenabled = EXCLUDED.persistenceenabled ;\n"
+	UpsertAppState = "INSERT INTO appstate (userId, appName, persistenceenabled) VALUES($1,$2,$3) ON CONFLICT (userId, appName) DO UPDATE SET persistenceenabled = EXCLUDED.persistenceenabled ;\n"
 )
 
 type StatefulDB struct {
@@ -35,7 +35,7 @@ func (s *StatefulDB) InsertFlowState(flowState *state.FlowState) (results *Resul
 }
 
 func (s *StatefulDB) InsertAppState(appStatedata *metadata.Metadata) (results *ResultSet, err error) {
-	inputArgs := []interface{}{appStatedata.Username, appStatedata.AppName, appStatedata.AppVersion, appStatedata.PersistEnabled}
+	inputArgs := []interface{}{appStatedata.Username, appStatedata.AppName, appStatedata.PersistEnabled}
 	return s.insert(UpsertAppState, inputArgs)
 }
 
