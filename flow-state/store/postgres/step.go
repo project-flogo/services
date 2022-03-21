@@ -466,9 +466,6 @@ func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
 	if len(metadata.AppName) > 0 {
 		whereStr += "  and appname='" + metadata.AppName + "'"
 	}
-	if len(metadata.AppVersion) > 0 {
-		whereStr += "  and appversion='" + metadata.AppVersion + "'"
-	}
 
 	set, err := s.db.query("select persistenceEnabled from appstate "+whereStr, nil)
 	if err != nil {

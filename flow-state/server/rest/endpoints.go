@@ -60,10 +60,9 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 	router.GET("/v1/flows", sm.getFlowNames)
 	router.GET("/v1/apps/:appName/versions", sm.getAppVersions)
 
-	router.GET("/v1/app/state/:app/:version", sm.getAppState)
-	// router.POST("/v1/app/state/:app/:version/:toggle", sm.saveAppState)
-	router.POST("/v1/app/state/:app/:version", sm.saveAppState)
-	router.DELETE("/v1/app/state/:app/:version", sm.saveAppState)
+	router.GET("/v1/app/state/:appName", sm.getAppState)
+	router.POST("/v1/app/state/:appName", sm.saveAppState)
+	router.DELETE("/v1/app/state/:appName", sm.saveAppState)
 
 	if streamingStep {
 		router.GET("/v1/stream/steps", event.HandleStepEvent)
@@ -430,9 +429,9 @@ func (se *ServiceEndpoints) getAppVersions(response http.ResponseWriter, request
 }
 
 func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	appName := params.ByName(FLOGO_APPNAME)
-	appVersion := params.ByName(FLOGO_APPVERSION)
-	se.logger.Debugf("Endpoint[GET:/app/state/%s/%s] : Called", appName, appVersion)
+	appName := params.ByName("appName")
+
+	se.logger.Debugf("Endpoint[GET:/app/state/%s] : Called", appName)
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
@@ -441,9 +440,8 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 	}
 
 	metadata := &metadata.Metadata{
-		Username:   userName,
-		AppName:    appName,
-		AppVersion: appVersion,
+		Username: userName,
+		AppName:  appName,
 	}
 	persEnanbled, err := se.stepStore.GetAppState(metadata)
 	if err != nil {
@@ -460,9 +458,8 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 }
 
 func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	appName := params.ByName(FLOGO_APPNAME)
-	appVersion := params.ByName(FLOGO_APPVERSION)
-	se.logger.Debugf("Endpoint[%s:/app/state/%s/%s] : Called", request.Method, appName, appVersion)
+	appName := params.ByName("appName")
+	se.logger.Debugf("Endpoint[%s:/app/state/%s] : Called", request.Method, appName)
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
@@ -484,7 +481,6 @@ func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *
 	metadata := &metadata.Metadata{
 		Username:       userName,
 		AppName:        appName,
-		AppVersion:     appVersion,
 		PersistEnabled: persistEnable,
 	}
 	err := se.stepStore.SaveAppState(metadata)
