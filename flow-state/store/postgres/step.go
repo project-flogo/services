@@ -774,11 +774,6 @@ OUTER:
 			waitingSteps = append(waitingSteps, stepData)
 		}
 	}
-
-	if len(steps) <= 0 {
-		return nil, fmt.Errorf("step for flow instance [%s] not found", flowId)
-	}
-
 	return steps, err
 }
 

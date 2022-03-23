@@ -287,10 +287,8 @@ func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request
 		return
 	}
 	if steps == nil {
-		response.WriteHeader(http.StatusNotFound)
-		return
+		steps = []map[string]string{}
 	}
-
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(response).Encode(steps); err != nil {
