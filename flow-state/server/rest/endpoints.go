@@ -87,7 +87,11 @@ func (se *ServiceEndpoints) getHealthCheck(response http.ResponseWriter, request
 	se.logger.Debugf("Endpoint[GET:/health] : Called")
 	switch request.Method {
 	case http.MethodGet:
-		response.WriteHeader(http.StatusOK)
+		if se.stepStore.GetDBPingStatus() {
+			response.WriteHeader(http.StatusOK)
+		} else {
+			response.WriteHeader(515)
+		}
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)
 	}

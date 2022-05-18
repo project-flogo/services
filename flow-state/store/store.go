@@ -19,6 +19,7 @@ const (
 )
 
 type Store interface {
+	GetDBPingStatus() bool
 	GetStatus(flowId string) int
 	GetFlow(flowId string, metadata *metadata.Metadata) (*state.FlowInfo, error)
 	GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
