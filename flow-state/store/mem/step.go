@@ -25,6 +25,11 @@ type StepStore struct {
 	snapshots      sync.Map
 }
 
+func (s *StepStore) GetDBPingStatus() bool {
+	//TODO
+	return false
+}
+
 func (s *StepStore) GetStatus(flowId string) int {
 
 	s.RLock()

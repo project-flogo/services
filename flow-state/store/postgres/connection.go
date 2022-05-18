@@ -111,7 +111,13 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	if strings.HasPrefix(cMaxConnLifetime, "-") {
 		logCache.Debugf("Max lifetime connection value received is %s, it will be defaulted to 0", cMaxConnLifetime)
 	}
-
+	var lifetimeDuration time.Duration
+	if cMaxConnLifetime != "" {
+		lifetimeDuration, err = time.ParseDuration(cMaxConnLifetime)
+		if err != nil {
+			return nil, fmt.Errorf("Could not parse connection lifetime duration")
+		}
+	}
 	cMaxConnRetryAttempts := s.MaxConnRetryAttempts
 	if cMaxConnRetryAttempts == 0 {
 		logCache.Debug("Maximum connection retry attempt is 0, no retry attempts will be made")
@@ -218,7 +224,9 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 			}
 		}
 	}
-
+	db.SetMaxOpenConns(cMaxOpenConn)
+	db.SetMaxIdleConns(cMaxIdleConn)
+	db.SetConnMaxLifetime(lifetimeDuration)
 	logCache.Debug("----------- DB Stats after setting extra connection configs -----------")
 	logCache.Debug("Max Open Connections: " + strconv.Itoa(db.Stats().MaxOpenConnections))
 	logCache.Debug("Number of Open Connections: " + strconv.Itoa(db.Stats().OpenConnections))

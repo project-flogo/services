@@ -36,6 +36,13 @@ type StepStore struct {
 	settings       map[string]interface{}
 }
 
+func (s *StepStore) GetDBPingStatus() bool {
+	if err := s.db.db.Ping(); err != nil {
+		return false
+	}
+	return true
+}
+
 func (s *StepStore) GetStatus(flowId string) int {
 	s.RLock()
 	sc, ok := s.stepContainers[flowId]
