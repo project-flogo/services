@@ -96,14 +96,23 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFailedFlows after successful connection retry  ")
 				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -153,14 +162,23 @@ func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.Flo
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetCompletedFlows after successful connection retry  ")
 				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -217,14 +235,23 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 
 	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlows after successful connection retry  ")
 				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -302,14 +329,23 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
 
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlowsWithRecordCount after successful connection retry  ")
 				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -362,14 +398,23 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 
 	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlow after successful connection retry  ")
 				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -412,14 +457,23 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 
 	set, err := s.db.query("select distinct(flowname) from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlowNames after successful connection retry  ")
 				set, err = s.db.query("select distinct(flowname) from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -444,14 +498,23 @@ func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error
 
 	set, err := s.db.query("select distinct(appVersion) from flowstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetAppVersions after successful connection retry  ")
 				set, err = s.db.query("select distinct(appVersion) from flowstate "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -476,14 +539,23 @@ func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
 
 	set, err := s.db.query("select persistenceEnabled from appstate "+whereStr, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetAppState after successful connection retry  ")
 				set, err = s.db.query("select persistenceEnabled from appstate  "+whereStr, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return "", err
+				}
 			} else {
-				return "", err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return "", retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return "", err
 		}
 	}
@@ -497,10 +569,20 @@ func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
 
 func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
 	_, err := s.db.InsertAppState(metadata)
-	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
-		if s.RetryDBConnection() == nil {
+	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying from SaveAppState after successful connection retry  ")
 			_, err = s.db.InsertAppState(metadata)
+			if err != nil {
+				logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+				return err
+			}
+		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+			return retryErr
 		}
 	}
 	return err
@@ -508,10 +590,20 @@ func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
 
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
-	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
-		if s.RetryDBConnection() == nil {
+	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debugf("Retrying from SaveStep after successful connection retry  ")
 			_, err = s.db.InsertSteps(step)
+			if err != nil {
+				logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+				return err
+			}
+		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+			return retryErr
 		}
 	}
 	return err
@@ -519,10 +611,20 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 
 func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
 	_, err := s.db.DeleteSteps(flowId, stepId)
-	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
-		if s.RetryDBConnection() == nil {
+	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debugf("Retrying from  DeleteSteps after successful connection retry  ")
 			_, err = s.db.DeleteSteps(flowId, stepId)
+			if err != nil {
+				logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+				return err
+			}
+		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+			return retryErr
 		}
 	}
 	return err
@@ -532,14 +634,23 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetSteps after successful connection retry  ")
 				set, err = s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -549,6 +660,7 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 		m := *v
 		s1, err := coerce.ToBytes(m["stepdata"])
 		if err != nil {
+			logCache.Errorf("decodeBase64 for step data error:, %s", err.Error())
 			return nil, fmt.Errorf("decodeBase64 for step data error:", err.Error())
 		}
 		dbuf := make([]byte, base64.StdEncoding.DecodedLen(len(s1)))
@@ -557,6 +669,7 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 		var step *state.Step
 		err = json.Unmarshal(stePdata, &step)
 		if err != nil {
+			logCache.Errorf("Marshalling error:, %s", err.Error())
 			return nil, err
 		}
 		steps = append(steps, step)
@@ -572,14 +685,23 @@ func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetStepsAsTasks after successful connection retry  ")
 				set, err = s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -625,14 +747,23 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 	}
 	set, err := s.db.query(query, nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetStepdataForActivity after successful connection retry  ")
 				set, err = s.db.query(query, nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -696,14 +827,23 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 func (s *StepStore) GetStepIdOfEnclosingCallSubflow(flowid, taskname, subflowid string) (string, error) {
 	set, err := s.db.query("select stepid from steps where taskname = '"+taskname+"' and flowinstanceid= '"+flowid+"' and subflowid= '"+subflowid+"' and status != 'Waiting'", nil)
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetStepIdOfEnclosingCallSubflow after successful connection retry  ")
 				set, err = s.db.query("select stepid from steps where taskname = '"+taskname+"' and flowinstanceid= '"+flowid+"' and subflowid= '"+subflowid+"' and status != 'Waiting'", nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return "", err
+				}
 			} else {
-				return "", err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return "", retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return "", err
 		}
 	}
@@ -720,14 +860,23 @@ func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
 	set, err := s.db.query("select stepid, taskname, status, starttime, flowname, rerun, subflowid from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
 
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
-			if s.RetryDBConnection() == nil {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetStepsStatus after successful connection retry  ")
 				set, err = s.db.query("select stepid, taskname, status, starttime, flowname, rerun, subflowid from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
+				if err != nil {
+					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+					return nil, err
+				}
 			} else {
-				return nil, err
+				logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+				return nil, retryErr
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 			return nil, err
 		}
 	}
@@ -844,10 +993,20 @@ func (s *StepStore) GetSnapshot(flowId string) *state.Snapshot {
 
 func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 	_, err := s.db.InsertFlowState(flowState)
-	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
-		if s.RetryDBConnection() == nil {
+	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying from RecordStart after successful connection retry  ")
 			_, err = s.db.InsertFlowState(flowState)
+			if err != nil {
+				logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+				return err
+			}
+		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+			return retryErr
 		}
 	}
 	return err
@@ -855,10 +1014,20 @@ func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 
 func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
 	_, err := s.db.UpdateFlowState(flowState)
-	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer")) {
-		if s.RetryDBConnection() == nil {
+	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying to call  RecordEnd after successful connection retry  ")
 			_, err = s.db.UpdateFlowState(flowState)
+			if err != nil {
+				logCache.Errorf("Could not connect to database server error:, %s", err.Error())
+				return err
+			}
+		} else {
+			logCache.Errorf("Could not connect to database server error:, %s", retryErr.Error())
+			return retryErr
 		}
 	}
 	return err
@@ -869,6 +1038,7 @@ func (s *StepStore) RetryDBConnection() error {
 	err := metadata2.MapToStruct(s.settings, conSetting, false)
 
 	if err != nil {
+		logCache.Info("Returning without retry due to connection data parsing issue...")
 		return err
 	}
 	logCache.Info("Trying to ping the database server...")
@@ -876,7 +1046,10 @@ func (s *StepStore) RetryDBConnection() error {
 	err = s.db.db.Ping()
 	// retry attempt on ping only for conn refused and driver bad conn
 	if err != nil {
-		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+			strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 			logCache.Info("Failed to ping the database server, trying again...")
 			for i := 1; i <= conSetting.MaxConnRetryAttempts; i++ {
 				logCache.Infof("Connecting to database server... Attempt-[%d]", i)
@@ -884,9 +1057,13 @@ func (s *StepStore) RetryDBConnection() error {
 				time.Sleep(time.Duration(conSetting.ConnRetryDelay) * time.Second)
 				err = s.db.db.Ping()
 				if err != nil {
-					if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+					if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+						strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+						strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+						strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 						continue
 					} else {
+						logCache.Errorf("Could not connect to database server %s, %s", conSetting.DbName, err.Error())
 						return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
 					}
 				} else {
@@ -901,6 +1078,7 @@ func (s *StepStore) RetryDBConnection() error {
 				return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
 			}
 		} else {
+			logCache.Errorf("Could not connect to database server %s, %s", conSetting.DbName, err.Error())
 			return fmt.Errorf("Could not open connection to database %s, %s", conSetting.DbName, err.Error())
 		}
 	} else {
