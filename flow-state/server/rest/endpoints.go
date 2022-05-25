@@ -90,6 +90,7 @@ func (se *ServiceEndpoints) getHealthCheck(response http.ResponseWriter, request
 		if se.stepStore.GetDBPingStatus() {
 			response.WriteHeader(http.StatusOK)
 		} else {
+			se.logger.Info("Health check status failed")
 			response.WriteHeader(515)
 		}
 	default:
@@ -102,18 +103,21 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
 
 	appName := request.URL.Query().Get(FLOGO_APPNAME)
 	if len(appName) <= 0 {
+		se.logger.Error("Sending error response as app name not provided")
 		http.Error(response, "Please provide app name", http.StatusBadRequest)
 		return
 	}
 
 	appVersion := request.URL.Query().Get(FLOGO_APPVERSION)
 	if len(appVersion) <= 0 {
+		se.logger.Error("Sending error response as app version not provided")
 		http.Error(response, "Please provide app version", http.StatusBadRequest)
 		return
 	}
@@ -177,6 +181,7 @@ func (se *ServiceEndpoints) getInstances(response http.ResponseWriter, request *
 	} else {*/
 	instances, err := se.stepStore.GetFlowsWithRecordCount(metadata)
 	if err != nil {
+		se.logger.Error("Sending error response as getting flow instance error:" + err.Error())
 		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -200,6 +205,7 @@ func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *h
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
@@ -214,6 +220,7 @@ func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *h
 
 	instance, err := se.stepStore.GetFlow(flowId, metadata)
 	if err != nil {
+		se.logger.Error("Sending error response as get flow details error: " + err.Error())
 		http.Error(response, "get flow details error: ", http.StatusInternalServerError)
 		return
 	}
@@ -221,6 +228,7 @@ func (se *ServiceEndpoints) getInstance(response http.ResponseWriter, request *h
 		se.logger.Debugf("Getting instance from steps")
 		instance, err = se.stepStore.GetFlow(flowId, metadata)
 		if err != nil {
+			se.logger.Error("Sending error response as get flow details error: " + err.Error())
 			http.Error(response, "get flow details error: ", http.StatusInternalServerError)
 			return
 		}
@@ -267,6 +275,7 @@ func (se *ServiceEndpoints) getSteps(response http.ResponseWriter, request *http
 	se.logger.Debugf("Endpoint[GET:/instances/%s/steps] : Called", flowId)
 	steps, err := se.stepStore.GetSteps(flowId)
 	if err != nil {
+		se.logger.Error("Sending error response as get steps error: " + err.Error())
 		http.Error(response, "get steps error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -287,7 +296,8 @@ func (se *ServiceEndpoints) getStepsStatus(response http.ResponseWriter, request
 	se.logger.Debugf("Endpoint[GET:/instances/%s/steps/status] : Called", flowId)
 	steps, err := se.stepStore.GetStepsStatus(flowId)
 	if err != nil {
-		http.Error(response, "get steps error:"+err.Error(), http.StatusInternalServerError)
+		se.logger.Error("Sending error response as get steps status error: " + err.Error())
+		http.Error(response, "get steps status error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if steps == nil {
@@ -305,6 +315,7 @@ func (se *ServiceEndpoints) getStepsAsTasks(response http.ResponseWriter, reques
 	se.logger.Debugf("Endpoint[GET:/instances/%s/steps/tasks] : Called", flowId)
 	tasks, err := se.stepStore.GetStepsAsTasks(flowId)
 	if err != nil {
+		se.logger.Error("Sending error response as get tasks error:" + err.Error())
 		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -326,6 +337,7 @@ func (se *ServiceEndpoints) deleteSteps(response http.ResponseWriter, request *h
 	se.logger.Debugf("Endpoint[GET:/instances/%s/step/%s] : Called", flowId, stepId)
 	err := se.stepStore.DeleteSteps(flowId, stepId)
 	if err != nil {
+		se.logger.Error("Sending error response as deleteSteps error:" + err.Error())
 		http.Error(response, "get error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -340,6 +352,7 @@ func (se *ServiceEndpoints) getStepdataForActivity(response http.ResponseWriter,
 	se.logger.Debugf("Endpoint[GET:/instances/%s/step/%s/taskdata] : Called", flowId, stepid)
 	stepdata, err := se.stepStore.GetStepdataForActivity(flowId, stepid, taskname)
 	if err != nil {
+		se.logger.Error("Sending error response as get stepdata error:" + err.Error())
 		http.Error(response, "get tasks error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -360,18 +373,21 @@ func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
 
 	appName := request.URL.Query().Get(FLOGO_APPNAME)
 	if len(appName) <= 0 {
+		se.logger.Error("Sending error response as app name not provided")
 		http.Error(response, "Please provide app name", http.StatusBadRequest)
 		return
 	}
 
 	appVersion := request.URL.Query().Get(FLOGO_APPVERSION)
 	if len(appVersion) <= 0 {
+		se.logger.Error("Sending error response as app version not provided")
 		http.Error(response, "Please provide app version", http.StatusBadRequest)
 		return
 	}
@@ -384,7 +400,8 @@ func (se *ServiceEndpoints) getFlowNames(response http.ResponseWriter, request *
 	}
 	flownames, err := se.stepStore.GetFlowNames(metadata)
 	if err != nil {
-		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		se.logger.Error("Sending error response as getting flow names error:" + err.Error())
+		http.Error(response, "Getting flow names error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -405,6 +422,7 @@ func (se *ServiceEndpoints) getAppVersions(response http.ResponseWriter, request
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
@@ -415,7 +433,8 @@ func (se *ServiceEndpoints) getAppVersions(response http.ResponseWriter, request
 	}
 	appVersions, err := se.stepStore.GetAppVersions(metadata)
 	if err != nil {
-		http.Error(response, "Getting flow instance error:"+err.Error(), http.StatusInternalServerError)
+		se.logger.Error("Sending error response as getting app version error:" + err.Error())
+		http.Error(response, "Getting app version error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -437,6 +456,7 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
@@ -447,6 +467,7 @@ func (se *ServiceEndpoints) getAppState(response http.ResponseWriter, request *h
 	}
 	persEnanbled, err := se.stepStore.GetAppState(metadata)
 	if err != nil {
+		se.logger.Error("Sending error response as getting getAppState error:" + err.Error())
 		http.Error(response, "Getting getAppState error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -465,6 +486,7 @@ func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *
 
 	userName := request.Header.Get(Flogo_UserName)
 	if len(userName) <= 0 {
+		se.logger.Error("Sending error response as user information not provided")
 		http.Error(response, "unauthorized, please provide user information", http.StatusUnauthorized)
 		return
 	}
@@ -487,6 +509,7 @@ func (se *ServiceEndpoints) saveAppState(response http.ResponseWriter, request *
 	}
 	err := se.stepStore.SaveAppState(metadata)
 	if err != nil {
+		se.logger.Error("Sending error response as getting saveAppState error:" + err.Error())
 		http.Error(response, "Getting saveAppState error:"+err.Error(), http.StatusInternalServerError)
 		return
 	}

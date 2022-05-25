@@ -134,17 +134,19 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		logCache.Debugf("Connection retry delay value received is %d", cConnRetryDelay)
 		return nil, fmt.Errorf("Connection retry delay cannot be a negative number")
 	}
+	cConnTimeout := 10 // conn timeout
+	logCache.Debugf("Connection timeout value configured is %d", cConnTimeout)
 
 	cTLSConfig := s.TLSConfig
 	var conninfo string
 	if cTLSConfig == false {
 		logCache.Debugf("Login attempting plain connection")
-		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cHost, cPort, cUser, cPassword, cDbName)
+		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d ", cHost, cPort, cUser, cPassword, cDbName, cConnTimeout)
 	} else {
 		logCache.Debugf("Login attempting SSL connection")
 		cTLSMode := s.TLSMode
-		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s ",
-			cHost, cPort, cUser, cPassword, cDbName, decodeTLSParam(cTLSMode))
+		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d ",
+			cHost, cPort, cUser, cPassword, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
 		//create temp file
 		if s.Cacert != "" {
 			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", s.Cacert)
@@ -189,7 +191,10 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 			err = db.Ping()
 			// retry attempt on ping only for conn refused and driver bad conn
 			if err != nil {
-				if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+				if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+					strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+					strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+					strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 					logCache.Info("Failed to ping the database server, trying again...")
 					for i := 1; i <= cMaxConnRetryAttempts; i++ {
 						logCache.Infof("Connecting to database server... Attempt-[%d]", i)
@@ -197,7 +202,10 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 						time.Sleep(time.Duration(cConnRetryDelay) * time.Second)
 						err = db.Ping()
 						if err != nil {
-							if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") || strings.Contains(err.Error(), "connection reset by peer") {
+							if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+								strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
+								strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
+								strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 								continue
 							} else {
 								return nil, fmt.Errorf("Could not open connection to database %s, %s", cDbName, err.Error())
