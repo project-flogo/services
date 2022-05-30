@@ -569,10 +569,10 @@ func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
 
 func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
 	_, err := s.db.InsertAppState(metadata)
-	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
 		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
-		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout")) {
 		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying from SaveAppState after successful connection retry  ")
 			_, err = s.db.InsertAppState(metadata)
@@ -590,10 +590,10 @@ func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
 
 func (s *StepStore) SaveStep(step *state.Step) error {
 	_, err := s.db.InsertSteps(step)
-	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
 		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
-		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout")) {
 		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debugf("Retrying from SaveStep after successful connection retry  ")
 			_, err = s.db.InsertSteps(step)
@@ -611,10 +611,10 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 
 func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
 	_, err := s.db.DeleteSteps(flowId, stepId)
-	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
 		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
-		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout")) {
 		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debugf("Retrying from  DeleteSteps after successful connection retry  ")
 			_, err = s.db.DeleteSteps(flowId, stepId)
@@ -993,10 +993,10 @@ func (s *StepStore) GetSnapshot(flowId string) *state.Snapshot {
 
 func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 	_, err := s.db.InsertFlowState(flowState)
-	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
 		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
-		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout")) {
 		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying from RecordStart after successful connection retry  ")
 			_, err = s.db.InsertFlowState(flowState)
@@ -1014,10 +1014,10 @@ func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 
 func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
 	_, err := s.db.UpdateFlowState(flowState)
-	if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
+	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
 		strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "timedout") ||
-		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
+		strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout")) {
 		if retryErr := s.RetryDBConnection(); retryErr == nil {
 			logCache.Debug("Retrying to call  RecordEnd after successful connection retry  ")
 			_, err = s.db.UpdateFlowState(flowState)
