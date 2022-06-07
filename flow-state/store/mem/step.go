@@ -30,6 +30,11 @@ func (s *StepStore) GetDBPingStatus() bool {
 	return false
 }
 
+func (s *StepStore) GetMaxOpenConn() int {
+	//TODO
+	return 0
+
+}
 func (s *StepStore) GetStatus(flowId string) int {
 
 	s.RLock()

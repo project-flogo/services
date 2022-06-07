@@ -43,6 +43,12 @@ func (s *StepStore) GetDBPingStatus() bool {
 	return true
 }
 
+func (s *StepStore) GetMaxOpenConn() int {
+	connCount := s.db.db.Stats().MaxOpenConnections
+	return connCount
+
+}
+
 func (s *StepStore) GetStatus(flowId string) int {
 	s.RLock()
 	sc, ok := s.stepContainers[flowId]
