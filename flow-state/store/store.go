@@ -19,8 +19,8 @@ const (
 )
 
 type Store interface {
-	GetMaxOpenConn() int
-	GetDBPingStatus() bool
+	MaxConcurrencyLimit() int
+	Status() bool
 	GetStatus(flowId string) int
 	GetFlow(flowId string, metadata *metadata.Metadata) (*state.FlowInfo, error)
 	GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
