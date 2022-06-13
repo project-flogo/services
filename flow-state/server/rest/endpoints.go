@@ -88,7 +88,7 @@ func AppendEndpoints(router *httprouter.Router, logger log.Logger, exposeRecorde
 		router.POST("/v1/instances/end", sm.saveEnd)
 	}
 	// start saveStep worker go routines
-	maxOpenConn := sm.stepStore.GetMaxOpenConn()
+	maxOpenConn := sm.stepStore.MaxConcurrencyLimit()
 	for i := 0; i < maxOpenConn; i++ {
 		go saveStepWorker(sm)
 	}
@@ -98,7 +98,7 @@ func (se *ServiceEndpoints) getHealthCheck(response http.ResponseWriter, request
 	se.logger.Debugf("Endpoint[GET:/health] : Called")
 	switch request.Method {
 	case http.MethodGet:
-		if se.stepStore.GetDBPingStatus() {
+		if se.stepStore.Status() {
 			response.WriteHeader(http.StatusOK)
 		} else {
 			se.logger.Info("Health check status failed")
