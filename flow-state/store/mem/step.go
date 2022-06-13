@@ -25,14 +25,14 @@ type StepStore struct {
 	snapshots      sync.Map
 }
 
-func (s *StepStore) GetDBPingStatus() bool {
+func (s *StepStore) Status() bool {
 	//TODO
-	return false
+	return true
 }
 
-func (s *StepStore) GetMaxOpenConn() int {
+func (s *StepStore) MaxConcurrencyLimit() int {
 	//TODO
-	return 0
+	return 20 // hardcoding some good number considering its usage for concurrent goroutines in SMService
 
 }
 func (s *StepStore) GetStatus(flowId string) int {

@@ -36,14 +36,14 @@ type StepStore struct {
 	settings       map[string]interface{}
 }
 
-func (s *StepStore) GetDBPingStatus() bool {
+func (s *StepStore) Status() bool {
 	if err := s.db.db.Ping(); err != nil {
 		return false
 	}
 	return true
 }
 
-func (s *StepStore) GetMaxOpenConn() int {
+func (s *StepStore) MaxConcurrencyLimit() int {
 	connCount := s.db.db.Stats().MaxOpenConnections
 	return connCount
 
