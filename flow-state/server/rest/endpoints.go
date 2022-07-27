@@ -695,9 +695,9 @@ func (se *ServiceEndpoints) popFromStepSlice() []byte {
 			firstItem, se.stepSlice = se.stepSlice[0], se.stepSlice[1:]
 			return firstItem
 		} else {
-			se.logger.Infof("StepSlice is Empty so going to wait")
+			// se.logger.Infof("StepSlice is Empty so going to wait")
 			se.muc.Wait() // wait for condition to have non empty slice
-			se.logger.Infof("Received signal, came out of wait")
+			// se.logger.Infof("Received signal, came out of wait")
 		}
 	}
 	return nil
@@ -743,7 +743,7 @@ func (se *ServiceEndpoints) saveStep(response http.ResponseWriter, request *http
 
 func saveStepWorker(se *ServiceEndpoints) {
 	for { // infinite loop for getting work from channel
-		se.logger.Infof("pop from slice")
+		// se.logger.Infof("pop from slice")
 		content := se.popFromStepSlice()
 		if content != nil {
 			se.logger.Info("content received from slice.")
@@ -759,7 +759,7 @@ func saveStepWorker(se *ServiceEndpoints) {
 				se.logger.Errorf("Endpoint[POST:/instances/steps] : Error saving step - %v", err)
 			}
 		} else {
-			se.logger.Infof("**** Should never get here, StepSlice is Empty")
+			// se.logger.Infof("**** Should never get here, StepSlice is Empty")
 			/*	se.muc.L.Lock()
 				se.logger.Infof("StepSlice is Empty so going to wait")
 				se.muc.Wait()
