@@ -27,14 +27,13 @@ type pgConnection struct {
 	User                 string `md:"user"`
 	Password             string `md:"password"`
 	DbName               string `md:"databaseName"`
-	SSLMode              string `md:"sslmode"`
 	MaxOpenConnections   int    `md:"maxopenconnection"`
 	MaxIdleConnections   int    `md:"maxidleconnection"`
 	MaxConnLifetime      string `md:"connmaxlifetime"`
 	MaxConnRetryAttempts int    `md:"maxconnectattempts"`
 	ConnRetryDelay       int    `md:"connectionretrydelay"`
-	TLSConfig            bool   `md:"tlsconfig"`
-	TLSMode              string `md:"tlsparam"`
+	TLSEnable            bool   `md:"tlsEnable"`
+	TLSMode              string `md:"tlsMode"`
 	Cacert               string `md:"cacert"`
 	Clientcert           string `md:"clientcert"`
 	Clientkey            string `md:"clientkey"`
@@ -137,7 +136,7 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	cConnTimeout := 10 // conn timeout
 	logCache.Debugf("Connection timeout value configured is %d", cConnTimeout)
 
-	cTLSConfig := s.TLSConfig
+	cTLSConfig := s.TLSEnable
 	var conninfo string
 	if cTLSConfig == false {
 		logCache.Debugf("Login attempting plain connection")

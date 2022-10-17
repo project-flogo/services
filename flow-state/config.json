@@ -2,11 +2,11 @@
   "exposeRecorder": true,
   "port": "9190",
   "persistence": {
-    "type":"postgres",
+    "type": "postgres",
     "name": "asdasdasd",
     "description": "",
     "host": "localhost",
-    "port": "54320",
+    "port": "5432",
     "databaseName": "postgres",
     "user": "postgres",
     "password": "password",
@@ -15,9 +15,10 @@
     "connmaxlifetime": "0",
     "maxconnectattempts": "3",
     "connectionretrydelay": "5",
-    "tlsparam": "VerifyCA",
-    "cacert": "",
-    "clientcert": "",
-    "clientkey": ""
+    "tlsEnable": true,
+    "tlsMode": "VerifyFull",
+    "cacert": "/home/user/postgres-ssl/rootCA.crt.pem",
+    "clientcert": "/home/user/postgres-ssl/client.crt.pem",
+    "clientkey": "/home/user/postgres-ssl/client.key.pem"
   }
 }
