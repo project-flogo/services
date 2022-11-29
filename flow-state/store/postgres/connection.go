@@ -155,7 +155,7 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		}
 		if s.CACert != "" {
 			pathCACert := filepath.Join(pwd, "caCert.pem")
-			err = os.WriteFile(pathCACert, []byte(s.CACert), 0644)
+			err = os.WriteFile(pathCACert, []byte(s.CACert), 0600)
 			if err != nil {
 				logCache.Errorf("could not create CA cert file due to %s", err.Error())
 				return nil, fmt.Errorf("could not create CA cert file due to %s", err.Error())
@@ -164,7 +164,7 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		}
 		if s.ClientCert != "" {
 			pathClientCert := filepath.Join(pwd, "clientCert.pem")
-			err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0644)
+			err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0600)
 			if err != nil {
 				logCache.Errorf("could not create client cert file due to %s", err.Error())
 				return nil, fmt.Errorf("could not create client cert file due to %s", err.Error())
@@ -173,7 +173,7 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		}
 		if s.ClientKey != "" {
 			pathClientKey := filepath.Join(pwd, "cacert.pem")
-			err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0644)
+			err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0600)
 			if err != nil {
 				logCache.Errorf("could not create client key file due to %s", err.Error())
 				return nil, fmt.Errorf("could not create client key file due to %s", err.Error())
