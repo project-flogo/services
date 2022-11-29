@@ -154,31 +154,46 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 			return nil, fmt.Errorf("could not get working dir due to %s", err.Error())
 		}
 		if s.CACert != "" {
-			pathCACert := filepath.Join(pwd, "caCert.pem")
-			err = os.WriteFile(pathCACert, []byte(s.CACert), 0600)
-			if err != nil {
-				logCache.Errorf("could not create CA cert file due to %s", err.Error())
-				return nil, fmt.Errorf("could not create CA cert file due to %s", err.Error())
+			// check if input is already a filepath
+			if strings.HasPrefix(s.CACert, "-----") {
+				// input is not a file path
+				pathCACert := filepath.Join(pwd, "caCert.pem")
+				err = os.WriteFile(pathCACert, []byte(s.CACert), 0600)
+				if err != nil {
+					logCache.Errorf("could not create CA cert file due to %s", err.Error())
+					return nil, fmt.Errorf("could not create CA cert file due to %s", err.Error())
+				}
+				s.CACert = pathCACert
 			}
-			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", pathCACert)
+			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", s.CACert)
 		}
 		if s.ClientCert != "" {
-			pathClientCert := filepath.Join(pwd, "clientCert.pem")
-			err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0600)
-			if err != nil {
-				logCache.Errorf("could not create client cert file due to %s", err.Error())
-				return nil, fmt.Errorf("could not create client cert file due to %s", err.Error())
+			// check if input is already a filepath
+			if strings.HasPrefix(s.ClientCert, "-----") {
+				// input is not a file path
+				pathClientCert := filepath.Join(pwd, "clientCert.pem")
+				err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0600)
+				if err != nil {
+					logCache.Errorf("could not create client cert file due to %s", err.Error())
+					return nil, fmt.Errorf("could not create client cert file due to %s", err.Error())
+				}
+				s.ClientCert = pathClientCert
 			}
-			conninfo = conninfo + fmt.Sprintf("sslcert=%s ", pathClientCert)
+			conninfo = conninfo + fmt.Sprintf("sslcert=%s ", s.ClientCert)
 		}
 		if s.ClientKey != "" {
-			pathClientKey := filepath.Join(pwd, "cacert.pem")
-			err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0600)
-			if err != nil {
-				logCache.Errorf("could not create client key file due to %s", err.Error())
-				return nil, fmt.Errorf("could not create client key file due to %s", err.Error())
+			// check if input is already a filepath
+			if strings.HasPrefix(s.ClientKey, "-----") {
+				// input is not a file path
+				pathClientKey := filepath.Join(pwd, "cacert.pem")
+				err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0600)
+				if err != nil {
+					logCache.Errorf("could not create client key file due to %s", err.Error())
+					return nil, fmt.Errorf("could not create client key file due to %s", err.Error())
+				}
+				s.ClientKey = pathClientKey
 			}
-			conninfo = conninfo + fmt.Sprintf("sslkey=%s ", pathClientKey)
+			conninfo = conninfo + fmt.Sprintf("sslkey=%s ", s.ClientKey)
 		}
 	}
 	// add connection delay
