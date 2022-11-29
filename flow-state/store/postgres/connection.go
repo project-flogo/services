@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -34,9 +35,9 @@ type pgConnection struct {
 	ConnRetryDelay       int    `md:"connectionretrydelay"`
 	TLSEnable            bool   `md:"tlsEnable"`
 	TLSMode              string `md:"tlsMode"`
-	Cacert               string `md:"cacert"`
-	Clientcert           string `md:"clientcert"`
-	Clientkey            string `md:"clientkey"`
+	CACert               string `md:"cacert"`
+	ClientCert           string `md:"clientcert"`
+	ClientKey            string `md:"clientkey"`
 }
 
 // PgFactory for postgres connection
@@ -147,14 +148,37 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d ",
 			cHost, cPort, cUser, cPassword, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
 		//create temp file
-		if s.Cacert != "" {
-			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", s.Cacert)
+		pwd, err := os.Getwd()
+		if err != nil {
+			logCache.Errorf("could not get working dir due to %s", err.Error())
+			return nil, fmt.Errorf("could not get working dir due to %s", err.Error())
 		}
-		if s.Clientcert != "" {
-			conninfo = conninfo + fmt.Sprintf("sslcert=%s ", s.Clientcert)
+		if s.CACert != "" {
+			pathCACert := filepath.Join(pwd, "caCert.pem")
+			err = os.WriteFile(pathCACert, []byte(s.CACert), 0644)
+			if err != nil {
+				logCache.Errorf("could not create CA cert file due to %s", err.Error())
+				return nil, fmt.Errorf("could not create CA cert file due to %s", err.Error())
+			}
+			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", pathCACert)
 		}
-		if s.Clientkey != "" {
-			conninfo = conninfo + fmt.Sprintf("sslkey=%s ", s.Clientkey)
+		if s.ClientCert != "" {
+			pathClientCert := filepath.Join(pwd, "clientCert.pem")
+			err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0644)
+			if err != nil {
+				logCache.Errorf("could not create client cert file due to %s", err.Error())
+				return nil, fmt.Errorf("could not create client cert file due to %s", err.Error())
+			}
+			conninfo = conninfo + fmt.Sprintf("sslcert=%s ", pathClientCert)
+		}
+		if s.ClientKey != "" {
+			pathClientKey := filepath.Join(pwd, "cacert.pem")
+			err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0644)
+			if err != nil {
+				logCache.Errorf("could not create client key file due to %s", err.Error())
+				return nil, fmt.Errorf("could not create client key file due to %s", err.Error())
+			}
+			conninfo = conninfo + fmt.Sprintf("sslkey=%s ", pathClientKey)
 		}
 	}
 	// add connection delay
