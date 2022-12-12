@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/base64"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,6 +61,7 @@ func decodeTLSParam(tlsparm string) string {
 	}
 }
 
+// NewDB opens a DB connection and pings it to verify connection
 func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	var err error
 
@@ -153,45 +155,28 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 			logCache.Errorf("could not get working dir due to %s", err.Error())
 			return nil, fmt.Errorf("could not get working dir due to %s", err.Error())
 		}
+
 		if s.CACert != "" {
-			// check if input is already a filepath
-			if strings.HasPrefix(s.CACert, "-----") {
-				// input is not a file path
-				pathCACert := filepath.Join(pwd, "caCert.pem")
-				err = os.WriteFile(pathCACert, []byte(s.CACert), 0600)
-				if err != nil {
-					logCache.Errorf("could not create CA cert file due to %s", err.Error())
-					return nil, fmt.Errorf("could not create CA cert file due to %s", err.Error())
-				}
-				s.CACert = pathCACert
+			pathCACert := filepath.Join(pwd, "caCert.pem")
+			s.CACert, err = getCertPath(pathCACert, s.CACert)
+			if err != nil {
+				return nil, err
 			}
 			conninfo = conninfo + fmt.Sprintf("sslrootcert=%s ", s.CACert)
 		}
 		if s.ClientCert != "" {
-			// check if input is already a filepath
-			if strings.HasPrefix(s.ClientCert, "-----") {
-				// input is not a file path
-				pathClientCert := filepath.Join(pwd, "clientCert.pem")
-				err = os.WriteFile(pathClientCert, []byte(s.ClientCert), 0600)
-				if err != nil {
-					logCache.Errorf("could not create client cert file due to %s", err.Error())
-					return nil, fmt.Errorf("could not create client cert file due to %s", err.Error())
-				}
-				s.ClientCert = pathClientCert
+			pathClientCert := filepath.Join(pwd, "clientCert.pem")
+			s.ClientCert, err = getCertPath(pathClientCert, s.ClientCert)
+			if err != nil {
+				return nil, err
 			}
 			conninfo = conninfo + fmt.Sprintf("sslcert=%s ", s.ClientCert)
 		}
 		if s.ClientKey != "" {
-			// check if input is already a filepath
-			if strings.HasPrefix(s.ClientKey, "-----") {
-				// input is not a file path
-				pathClientKey := filepath.Join(pwd, "cacert.pem")
-				err = os.WriteFile(pathClientKey, []byte(s.ClientKey), 0600)
-				if err != nil {
-					logCache.Errorf("could not create client key file due to %s", err.Error())
-					return nil, fmt.Errorf("could not create client key file due to %s", err.Error())
-				}
-				s.ClientKey = pathClientKey
+			pathClientKey := filepath.Join(pwd, "cacert.pem")
+			s.ClientKey, err = getCertPath(pathClientKey, s.ClientKey)
+			if err != nil {
+				return nil, err
 			}
 			conninfo = conninfo + fmt.Sprintf("sslkey=%s ", s.ClientKey)
 		}
@@ -208,13 +193,12 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		db, err = sql.Open("postgres", conninfo)
 		if err != nil {
 			return nil, fmt.Errorf("Could not open connection to database %s, %s", cDbName, err.Error())
-		} else {
-			err = db.Ping()
-			if err != nil {
-				return nil, fmt.Errorf("Could not open connection to database %s, %s", cDbName, err.Error())
-			}
-			dbConnected = 1
 		}
+		err = db.Ping()
+		if err != nil {
+			return nil, fmt.Errorf("Could not open connection to database %s, %s", cDbName, err.Error())
+		}
+		dbConnected = 1
 	} else if cMaxConnRetryAttempts > 0 {
 		logCache.Debugf("Maximum connection retry attempts allowed - %d", cMaxConnRetryAttempts)
 		logCache.Debugf("Connection retry delay - %d", cConnRetryDelay)
@@ -286,6 +270,45 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func getCertPath(certFilePath string, content string) (string, error) {
+	certPrefix := "-----"
+	certPrefixB64 := "LS0tLS"
+	certFileBase := filepath.Base(certFilePath)
+	// check if content is valid SSL cert
+	if strings.HasPrefix(content, certPrefix) {
+		// input is cert content
+		logCache.Debugf("found actual cert contents for %s", certFileBase)
+		err := os.WriteFile(certFilePath, []byte(content), 0600)
+		if err != nil {
+			logCache.Errorf("could not create %s due to %s", certFileBase, err.Error())
+			return "", fmt.Errorf("could not create %s due to %s", certFileBase, err.Error())
+		}
+		return certFilePath, nil
+	}
+	if strings.HasPrefix(content, certPrefixB64) {
+		// input is cert content but base64 encoded, decode first
+		logCache.Debugf("found base64 encoded contents for %s", certFileBase)
+		certBytes, err := b64.StdEncoding.DecodeString(content)
+		if err != nil {
+			logCache.Errorf("could not b64 decode %s due to %s", certFileBase, err.Error())
+			return "", fmt.Errorf("could not b64 decode %s due to %s", certFileBase, err.Error())
+		}
+		err = os.WriteFile(certFilePath, certBytes, 0600)
+		if err != nil {
+			logCache.Errorf("could not create %s due to %s", certFileBase, err.Error())
+			return "", fmt.Errorf("could not create %s due to %s", certFileBase, err.Error())
+		}
+		return certFilePath, nil
+	}
+	// assume input is path to cert file
+	_, err := os.Stat(content)
+	if err != nil {
+		logCache.Errorf("could not read cert file at %s due to %s", content, err.Error())
+		return "", fmt.Errorf("could not read cert file at %s due to %s", content, err.Error())
+	}
+	return content, nil
 }
 
 // copyCertToTempFile creates temp mssql.pem file for running app in container
