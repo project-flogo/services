@@ -51,13 +51,13 @@ func (*PgFactory) Type() string {
 }
 
 func decodeTLSParam(tlsparm string) string {
-	switch tlsparm {
-	case "VerifyCA":
+	switch strings.ToLower(tlsparm) {
+	case "verifyca", "one-way":
 		return "verify-ca"
-	case "VerifyFull":
+	case "verifyfull", "two-way":
 		return "verify-full"
 	default:
-		return ""
+		return tlsparm
 	}
 }
 
