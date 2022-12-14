@@ -87,10 +87,6 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	if cUser == "" {
 		return nil, errors.New("Required Parameter User is missing")
 	}
-	cPassword := s.Password
-	if cPassword == "" {
-		return nil, errors.New("Required Parameter Password is missing")
-	}
 
 	cMaxOpenConn := s.MaxOpenConnections
 	if cMaxOpenConn == 0 {
@@ -143,12 +139,12 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	var conninfo string
 	if cTLSConfig == false {
 		logCache.Debugf("Login attempting plain connection")
-		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d ", cHost, cPort, cUser, cPassword, cDbName, cConnTimeout)
+		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d ", cHost, cPort, cUser, s.Password, cDbName, cConnTimeout)
 	} else {
 		logCache.Debugf("Login attempting SSL connection")
 		cTLSMode := s.TLSMode
 		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d ",
-			cHost, cPort, cUser, cPassword, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
+			cHost, cPort, cUser, s.Password, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
 		//create temp file
 		pwd, err := os.Getwd()
 		if err != nil {
