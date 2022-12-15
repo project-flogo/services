@@ -51,13 +51,13 @@ func (*PgFactory) Type() string {
 }
 
 func decodeTLSParam(tlsparm string) string {
-	switch tlsparm {
-	case "VerifyCA":
+	switch strings.ToLower(tlsparm) {
+	case "verifyca", "one-way":
 		return "verify-ca"
-	case "VerifyFull":
+	case "verifyfull", "two-way":
 		return "verify-full"
 	default:
-		return ""
+		return tlsparm
 	}
 }
 
@@ -86,10 +86,6 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	cUser := s.User
 	if cUser == "" {
 		return nil, errors.New("Required Parameter User is missing")
-	}
-	cPassword := s.Password
-	if cPassword == "" {
-		return nil, errors.New("Required Parameter Password is missing")
 	}
 
 	cMaxOpenConn := s.MaxOpenConnections
@@ -143,12 +139,12 @@ func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	var conninfo string
 	if cTLSConfig == false {
 		logCache.Debugf("Login attempting plain connection")
-		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d ", cHost, cPort, cUser, cPassword, cDbName, cConnTimeout)
+		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable connect_timeout=%d ", cHost, cPort, cUser, s.Password, cDbName, cConnTimeout)
 	} else {
 		logCache.Debugf("Login attempting SSL connection")
 		cTLSMode := s.TLSMode
 		conninfo = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d ",
-			cHost, cPort, cUser, cPassword, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
+			cHost, cPort, cUser, s.Password, cDbName, decodeTLSParam(cTLSMode), cConnTimeout)
 		//create temp file
 		pwd, err := os.Getwd()
 		if err != nil {
