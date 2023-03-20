@@ -1,0 +1,111 @@
+package data
+
+import "sync"
+
+// Scope is a set of attributes that are accessible
+type Scope interface {
+	// GetValue gets the specified value
+	GetValue(name string) (value interface{}, exists bool)
+
+	// SetValue sets the specified  value
+	SetValue(name string, value interface{}) error
+}
+
+// NeedDelete uses to delete attributes from Scope
+type NeedsDelete interface {
+	// Delete data from scope
+	Delete(name string)
+}
+
+// SimpleScope is a basic implementation of a scope
+type SimpleScope struct {
+	parentScope Scope
+	values      map[string]interface{}
+}
+
+// NewSimpleScope creates a new SimpleScope
+func NewSimpleScope(values map[string]interface{}, parentScope Scope) Scope {
+
+	scope := &SimpleScope{
+		parentScope: parentScope,
+		values:      make(map[string]interface{}),
+	}
+
+	for name, value := range values {
+		scope.values[name] = value
+	}
+
+	return scope
+}
+
+// GetValue implements Scope.GetValue
+func (s *SimpleScope) GetValue(name string) (value interface{}, exists bool) {
+	value, found := s.values[name]
+
+	if found {
+		return value, true
+	}
+
+	if s.parentScope != nil {
+		return s.parentScope.GetValue(name)
+	}
+
+	return nil, false
+}
+
+// SetValue implements Scope.SetValue
+func (s *SimpleScope) SetValue(name string, value interface{}) error {
+	s.values[name] = value
+	return nil
+}
+
+// Delete implements ScopeDel.Delete
+func (s *SimpleScope) Delete(name string) {
+	if s.values != nil {
+		delete(s.values, name)
+	}
+}
+
+// SimpleSyncScope is a basic implementation of a synchronized scope
+type SimpleSyncScope struct {
+	scope Scope
+	mutex sync.RWMutex
+}
+
+// NewSimpleSyncScope creates a new SimpleSyncScope
+func NewSimpleSyncScope(values map[string]interface{}, parentScope Scope) Scope {
+
+	var syncScope SimpleSyncScope
+	syncScope.scope = NewSimpleScope(values, parentScope)
+
+	return &syncScope
+}
+
+// GetValue implements Scope.GetValue
+func (s *SimpleSyncScope) GetValue(name string) (value interface{}, exists bool) {
+
+	s.mutex.RLock()
+	v, e := s.scope.GetValue(name)
+	s.mutex.RUnlock()
+
+	return v, e
+}
+
+// Delete implements Scope.GetValue
+func (s *SimpleSyncScope) Delete(name string) {
+	s.mutex.Lock()
+	if delScope, ok := s.scope.(NeedsDelete); ok {
+		delScope.Delete(name)
+	}
+	s.mutex.Unlock()
+}
+
+// SetValue implements Scope.SetValue
+func (s *SimpleSyncScope) SetValue(name string, value interface{}) error {
+
+	s.mutex.Lock()
+	err := s.scope.SetValue(name, value)
+	s.mutex.Unlock()
+
+	return err
+}
