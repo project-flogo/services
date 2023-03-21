@@ -402,7 +402,7 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 		whereStr += "  and hostId='" + metadata.HostId + "'"
 	}
 
-	set, err := s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+	set, err := s.db.query("select flowinstanceid, flowname, status, flowinput from flowstate "+whereStr, nil)
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
@@ -410,7 +410,7 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlow after successful connection retry  ")
-				set, err = s.db.query("select flowinstanceid, flowname, status from flowstate "+whereStr, nil)
+				set, err = s.db.query("select flowinstanceid, flowname, status, flowinput from flowstate "+whereStr, nil)
 				if err != nil {
 					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 					return nil, err
@@ -431,11 +431,29 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 		id, _ := coerce.ToString(m["flowinstanceid"])
 		flowName, _ := coerce.ToString(m["flowname"])
 		status, _ := coerce.ToString(m["status"])
+
+		flowInputBytes, err := coerce.ToBytes(m["flowinput"])
+		if err != nil {
+			logCache.Errorf("decodeBase64 for flowInputBytes in GetFlow error:, %s", err.Error())
+			return nil, fmt.Errorf("decodeBase64 for flowInputBytes in GetFlow error:", err.Error())
+		}
+		dbuf := make([]byte, base64.StdEncoding.DecodedLen(len(flowInputBytes)))
+		n, err := base64.StdEncoding.Decode(dbuf, flowInputBytes)
+		if err != nil {
+			return nil, err
+		}
+		stepData := dbuf[:n]
+		var flowInput map[string]interface{}
+		err = json.Unmarshal(stepData, &flowInput)
+		if err != nil {
+			return nil, err
+		}
 		info := &state.FlowInfo{
 			Id:         id,
 			FlowName:   flowName,
 			FlowStatus: status,
 			FlowURI:    "res://flow:" + flowName,
+			FlowInput:  flowInput,
 		}
 		flowinfo = append(flowinfo, info)
 	}

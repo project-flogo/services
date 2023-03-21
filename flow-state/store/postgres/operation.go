@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	STEP_INSERT            = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
-	SNAPSHOT_INSERT        = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
-	FlowState_UPSERT_RERUN = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;\n"
-	UpdateFlowState        = "UPDATE flowstate set endtime=$1,status=$2, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $3;"
+	STEP_INSERT     = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
+	SNAPSHOT_INSERT = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
+
+	FlowState_UPSERT_RERUN = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId, flowInput, flowOutput, rerunCount, startTime, endTime, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status, flowInput = EXCLUDED.flowInput, flowOutput = EXCLUDED.flowOutput, rerunCount = EXCLUDED.rerunCount,  starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;"
+
+	UpdateFlowState = "UPDATE flowstate set endtime=$1, status=$2, flowInput=$3, flowOutput=$4, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $5;"
 
 	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname, rerun) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9, $10) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and CAST(stepid as INTEGER) >= $2"
@@ -30,7 +32,14 @@ type StatefulDB struct {
 }
 
 func (s *StatefulDB) InsertFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
+	var flowInputs, flowOutputs []byte
+	if flowState.FlowInputs != nil {
+		flowInputs, _ = json.Marshal(flowState.FlowInputs)
+	}
+	if flowState.FlowOutputs != nil {
+		flowOutputs, _ = json.Marshal(flowState.FlowOutputs)
+	}
+	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowInputs, flowOutputs, flowState.RerunCount, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
 	return s.insert(FlowState_UPSERT_RERUN, inputArgs)
 }
 
@@ -40,7 +49,14 @@ func (s *StatefulDB) InsertAppState(appStatedata *metadata.Metadata) (results *R
 }
 
 func (s *StatefulDB) UpdateFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowState.EndTime, flowState.FlowStats, flowState.FlowInstanceId}
+	var flowInputs, flowOutputs []byte
+	if flowState.FlowInputs != nil {
+		flowInputs, _ = json.Marshal(flowState.FlowInputs)
+	}
+	if flowState.FlowOutputs != nil {
+		flowOutputs, _ = json.Marshal(flowState.FlowOutputs)
+	}
+	inputArgs := []interface{}{flowState.EndTime, flowState.FlowStats, flowInputs, flowOutputs, flowState.FlowInstanceId}
 	return s.insert(UpdateFlowState, inputArgs)
 }
 
@@ -173,7 +189,7 @@ func (s *StatefulDB) delete(deleteSql string, inputArgs []interface{}) (results 
 	return UnmarshalRows(rows)
 }
 
-//GetStatement
+// GetStatement
 func (s *StatefulDB) getStepStatement(prepared string) (stmt *sql.Stmt, err error) {
 	preparedQueryCacheMutex.Lock()
 	defer preparedQueryCacheMutex.Unlock()
