@@ -7,7 +7,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lib/pq v1.10.7
 	github.com/project-flogo/core v1.6.4
-	github.com/project-flogo/flow v1.6.5-0.20230323125554-e3d167c0c1e0
+	github.com/project-flogo/flow v1.6.5-0.20230324065406-53d6cf9cc418
 	github.com/rs/cors v1.8.3
 )
 

@@ -25,8 +25,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/project-flogo/core v1.6.4 h1:MG4XNXqEmmY3qkPyUOmq5Ph0m8ycknnKcFqsH8avPa0=
 github.com/project-flogo/core v1.6.4/go.mod h1:fapTXUhLxDeAHyb6eMkuwnYswO8FpZJAMat055QVdJE=
-github.com/project-flogo/flow v1.6.5-0.20230323125554-e3d167c0c1e0 h1:PoRs8h2aG01ANlCPgyZ2N7oulxjOeofgB7A3NojyQkg=
-github.com/project-flogo/flow v1.6.5-0.20230323125554-e3d167c0c1e0/go.mod h1:8b0r4IuPb54MFOxKhyq3sPDm080Hzgtv2yVdAA6aEg0=
+github.com/project-flogo/flow v1.6.5-0.20230324065406-53d6cf9cc418 h1:jB0fcOjaq5FsgMYKdqVuh+k4JN/T+WEtIdhrVZWh32A=
+github.com/project-flogo/flow v1.6.5-0.20230324065406-53d6cf9cc418/go.mod h1:8b0r4IuPb54MFOxKhyq3sPDm080Hzgtv2yVdAA6aEg0=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rs/cors v1.8.3 h1:O+qNyWn7Z+F9M0ILBHgMVPuB1xTOucVd5gtaYyXBpRo=
 github.com/rs/cors v1.8.3/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
