@@ -48,4 +48,4 @@ tags
 submodules/flogo-cicd/.build-cache
 ./Dockerfile
 vendor/
-config.json
+flow-state/config.json
