@@ -453,7 +453,7 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 			FlowName:   flowName,
 			FlowStatus: status,
 			FlowURI:    "res://flow:" + flowName,
-			FlowInput:  flowInput,
+			FlowInputs: flowInput,
 		}
 		flowinfo = append(flowinfo, info)
 	}
