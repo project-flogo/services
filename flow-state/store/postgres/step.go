@@ -402,7 +402,7 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 		whereStr += "  and hostId='" + metadata.HostId + "'"
 	}
 
-	set, err := s.db.query("select flowinstanceid, flowname, status, flowinput from flowstate "+whereStr, nil)
+	set, err := s.db.query("select flowinstanceid, flowname, status, flowinput, reruncount, rerunofflowinstanceid from flowstate "+whereStr, nil)
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 			strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
