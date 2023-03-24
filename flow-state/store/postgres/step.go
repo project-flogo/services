@@ -314,7 +314,7 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 	}
 
 	if len(mtdata.FlowInstanceId) > 0 {
-		whereStr += "  and flowinstanceid='" + mtdata.FlowInstanceId + "'"
+		whereStr += "  and (flowinstanceid='" + mtdata.FlowInstanceId + "' or rerunofflowinstanceid='" + mtdata.FlowInstanceId + "' )"
 	}
 
 	if len(mtdata.Interval) > 0 {
@@ -332,7 +332,7 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		whereStr += offsetLimitStr
 	}
 
-	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+	set, err := s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, rerunofflowinstanceid, reruncount, flowinput, count(*) over() AS full_count from flowstate "+whereStr, nil)
 
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
@@ -341,7 +341,7 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 			strings.Contains(err.Error(), "timed out") || strings.Contains(err.Error(), "net.Error") || strings.Contains(err.Error(), "i/o timeout") {
 			if retryErr := s.RetryDBConnection(); retryErr == nil {
 				logCache.Debugf("Retrying from GetFlowsWithRecordCount after successful connection retry  ")
-				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, count(*) over() AS full_count from flowstate "+whereStr, nil)
+				set, err = s.db.query("select flowinstanceid, flowname, status, hostid, starttime, endtime, executiontime, rerunofflowinstanceid, reruncount, flowinput, count(*) over() AS full_count from flowstate "+whereStr, nil)
 				if err != nil {
 					logCache.Errorf("Could not connect to database server error:, %s", err.Error())
 					return nil, err
@@ -367,14 +367,25 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 		endtime, _ := coerce.ToString(m["endtime"])
 		executiontime, _ := coerce.ToString(m["executiontime"])
 		count, _ = coerce.ToInt32(m["full_count"])
+		originalInstanceId, _ := coerce.ToString(m["rerunofflowinstanceid"])
+		reRunCount, _ := coerce.ToInt(m["reruncount"])
+		var flowInput map[string]interface{}
+
+		if m["flowinput"] != nil {
+			flowInput = make(map[string]interface{})
+		}
+
 		info := &state.FlowInfo{
-			Id:            id,
-			FlowName:      flowName,
-			HostId:        hostid,
-			FlowStatus:    status,
-			StartTime:     starttime,
-			EndTime:       endtime,
-			ExecutionTime: executiontime,
+			Id:                 id,
+			FlowName:           flowName,
+			HostId:             hostid,
+			FlowStatus:         status,
+			StartTime:          starttime,
+			EndTime:            endtime,
+			ExecutionTime:      executiontime,
+			OriginalInstanceId: originalInstanceId,
+			RerunCount:         reRunCount,
+			FlowInputs:         flowInput,
 		}
 		flowinfo = append(flowinfo, info)
 	}
