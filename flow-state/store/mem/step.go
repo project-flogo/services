@@ -25,7 +25,7 @@ type StepStore struct {
 	snapshots      sync.Map
 }
 
-func (s *StepStore) Status() bool {
+func (s *StepStore) Status() interface{} {
 	//TODO
 	return true
 }

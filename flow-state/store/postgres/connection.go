@@ -65,6 +65,11 @@ func decodeTLSParam(tlsparm string) string {
 func NewDB(settings map[string]interface{}) (*sql.DB, error) {
 	var err error
 
+	dbMaxConn := settings["maxopenconnection"]
+	_, err = strconv.Atoi(dbMaxConn.(string))
+	if err != nil {
+		settings["maxopenconnection"] = "0"
+	}
 	s := &pgConnection{}
 	err = metadata.MapToStruct(settings, s, false)
 

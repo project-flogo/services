@@ -20,7 +20,7 @@ const (
 
 type Store interface {
 	MaxConcurrencyLimit() int
-	Status() bool
+	Status() interface{}
 	GetStatus(flowId string) int
 	GetFlow(flowId string, metadata *metadata.Metadata) (*state.FlowInfo, error)
 	GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error)
