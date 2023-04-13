@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/lib/pq"
 	"reflect"
@@ -30,7 +31,10 @@ func NewStore(settings map[string]interface{}) (*StepStore, error) {
 	}
 
 	statefulDB := &StatefulDB{db: db}
+	dbDetails.Connected = false
+	dbDetails.Message = "Connected"
 	dbDetails.getDBDetails(statefulDB)
+	dbDetails.Status = true
 	statefulDB.dbDetails = dbDetails
 	return &StepStore{db: statefulDB, settings: settings}, err
 
@@ -139,6 +143,11 @@ func (s *StepStore) GetStatus(flowId string) int {
 //}
 
 func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where"
 	if len(metadata.Username) < 0 {
 		return nil, fmt.Errorf("unauthorized, please provide user infomation")
@@ -205,6 +214,11 @@ func (s *StepStore) GetFailedFlows(metadata *metadata.Metadata) ([]*state.FlowIn
 }
 
 func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where"
 	if len(metadata.Username) < 0 {
 		return nil, fmt.Errorf("unauthorized, please provide user infomation")
@@ -271,6 +285,11 @@ func (s *StepStore) GetCompletedFlows(metadata *metadata.Metadata) ([]*state.Flo
 }
 
 func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where"
 	if len(metadata.Username) < 0 {
 		return nil, fmt.Errorf("unauthorized, please provide user infomation")
@@ -350,6 +369,11 @@ func (s *StepStore) GetFlows(metadata *metadata.Metadata) ([]*state.FlowInfo, er
 }
 
 func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadata.FlowRecord, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where"
 	if len(mtdata.Username) < 0 {
 		return nil, fmt.Errorf("unauthorized, please provide user infomation")
@@ -479,6 +503,10 @@ func (s *StepStore) GetFlowsWithRecordCount(mtdata *metadata.Metadata) (*metadat
 }
 
 func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.FlowInfo, error) {
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where flowinstanceid = '" + flowid + "'"
 	if len(metadata.Username) > 0 {
 		whereStr += " and userId='" + metadata.Username + "'"
@@ -556,6 +584,10 @@ func (s *StepStore) GetFlow(flowid string, metadata *metadata.Metadata) (*state.
 }
 
 func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) {
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where "
 	if len(metadata.Username) > 0 {
 		whereStr += " userId='" + metadata.Username + "'"
@@ -604,6 +636,11 @@ func (s *StepStore) GetFlowNames(metadata *metadata.Metadata) ([]string, error) 
 }
 
 func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
+
 	var whereStr = "where "
 	if len(metadata.Username) > 0 {
 		whereStr += " userId='" + metadata.Username + "'"
@@ -645,6 +682,11 @@ func (s *StepStore) GetAppVersions(metadata *metadata.Metadata) ([]string, error
 }
 
 func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
+
+	if !s.db.dbDetails.Connected {
+		return "", errors.New("Database is not connected")
+	}
+
 	var whereStr = "where "
 	if len(metadata.Username) > 0 {
 		whereStr += " userId='" + metadata.Username + "'"
@@ -684,6 +726,10 @@ func (s *StepStore) GetAppState(metadata *metadata.Metadata) (string, error) {
 }
 
 func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
+	if !s.db.dbDetails.Connected {
+		return errors.New("Database is not connected")
+	}
+
 	_, err := s.db.InsertAppState(metadata)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
@@ -705,6 +751,11 @@ func (s *StepStore) SaveAppState(metadata *metadata.Metadata) error {
 }
 
 func (s *StepStore) SaveStep(step *state.Step) error {
+
+	if !s.db.dbDetails.Connected {
+		return errors.New("Database is not connected")
+	}
+
 	_, err := s.db.InsertSteps(step)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
@@ -726,6 +777,11 @@ func (s *StepStore) SaveStep(step *state.Step) error {
 }
 
 func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
+
+	if !s.db.dbDetails.Connected {
+		return errors.New("Database is not connected")
+	}
+
 	_, err := s.db.DeleteSteps(flowId, stepId)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
@@ -747,6 +803,10 @@ func (s *StepStore) DeleteSteps(flowId string, stepId string) error {
 }
 
 func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
 
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
@@ -799,6 +859,9 @@ func (s *StepStore) GetSteps(flowId string) ([]*state.Step, error) {
 
 func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
 	set, err := s.db.query("select stepdata from steps where flowinstanceid = '"+flowId+"'", nil)
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
@@ -857,6 +920,10 @@ func (s *StepStore) GetStepsAsTasks(flowId string) ([][]*task.Task, error) {
 }
 
 func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*task.Task, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
 	query := "select stepdata from steps where flowinstanceid = '" + flowId + "' and stepid = '" + stepid + "'"
 	if taskname != "" {
 		query += " and taskname = '" + taskname + "'"
@@ -941,6 +1008,11 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 }
 
 func (s *StepStore) GetStepIdOfEnclosingCallSubflow(flowid, taskname, subflowid string) (string, error) {
+
+	if !s.db.dbDetails.Connected {
+		return "", errors.New("Database is not connected")
+	}
+
 	set, err := s.db.query("select stepid from steps where taskname = '"+taskname+"' and flowinstanceid= '"+flowid+"' and subflowid= '"+subflowid+"' and status != 'Waiting'", nil)
 	if err != nil {
 		if err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
@@ -972,6 +1044,10 @@ func (s *StepStore) GetStepIdOfEnclosingCallSubflow(flowid, taskname, subflowid 
 }
 
 func (s *StepStore) GetStepsStatus(flowId string) ([]map[string]string, error) {
+
+	if !s.db.dbDetails.Connected {
+		return nil, errors.New("Database is not connected")
+	}
 
 	set, err := s.db.query("select stepid, taskname, status, starttime, flowname, rerun, subflowid from steps where flowinstanceid = '"+flowId+"' and stepid != '0' order by cast(stepid as integer)", nil)
 
@@ -1108,6 +1184,10 @@ func (s *StepStore) GetSnapshot(flowId string) *state.Snapshot {
 }
 
 func (s *StepStore) RecordStart(flowState *state.FlowState) error {
+
+	if !s.db.dbDetails.Connected {
+		return errors.New("Database is not connected")
+	}
 	_, err := s.db.InsertFlowState(flowState)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
 		strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "dial tcp: lookup") ||
@@ -1129,6 +1209,10 @@ func (s *StepStore) RecordStart(flowState *state.FlowState) error {
 }
 
 func (s *StepStore) RecordEnd(flowState *state.FlowState) error {
+
+	if !s.db.dbDetails.Connected {
+		return errors.New("Database is not connected")
+	}
 
 	_, err := s.db.UpdateFlowState(flowState)
 	if err != nil && (err == driver.ErrBadConn || strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "network is unreachable") ||
