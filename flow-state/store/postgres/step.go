@@ -31,7 +31,7 @@ func NewStore(settings map[string]interface{}) (*StepStore, error) {
 	}
 
 	statefulDB := &StatefulDB{db: db}
-	dbDetails.Connected = false
+	dbDetails.Connected = true
 	dbDetails.Message = "Connected"
 	dbDetails.getDBDetails(statefulDB)
 	dbDetails.Status = true
