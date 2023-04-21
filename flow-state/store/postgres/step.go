@@ -111,7 +111,10 @@ func (s *StepStore) Status() interface{} {
 
 func (s *StepStore) MaxConcurrencyLimit() int {
 	if s.db.dbDetails.Connected {
-		return s.db.db.Stats().MaxOpenConnections
+		if s.db.db.Stats().MaxOpenConnections > 0 {
+			return s.db.db.Stats().MaxOpenConnections
+		}
+		return 50
 	} else {
 		return 1
 	}
