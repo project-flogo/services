@@ -6,6 +6,7 @@ import (
 	flowEvent "github.com/project-flogo/flow/support/event"
 	"github.com/project-flogo/services/flow-state/event"
 	"github.com/project-flogo/services/flow-state/store/metadata"
+	"github.com/project-flogo/services/flow-state/store/postgres"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -98,11 +99,13 @@ func (se *ServiceEndpoints) getHealthCheck(response http.ResponseWriter, request
 	se.logger.Debugf("Endpoint[GET:/health] : Called")
 	switch request.Method {
 	case http.MethodGet:
-		if se.stepStore.Status() {
-			response.WriteHeader(http.StatusOK)
-		} else {
-			se.logger.Info("Health check status failed")
-			response.WriteHeader(515)
+
+		status := se.stepStore.Status().(*postgres.DBDetails)
+
+		response.Header().Set("Content-Type", "application/json")
+		response.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(response).Encode(status); err != nil {
+			se.logger.Error(err.Error())
 		}
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)

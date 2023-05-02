@@ -14,24 +14,53 @@ import (
 )
 
 const (
-	STEP_INSERT            = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
-	SNAPSHOT_INSERT        = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
-	FlowState_UPSERT_RERUN = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId,startTime,endTime,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;\n"
-	UpdateFlowState        = "UPDATE flowstate set endtime=$1,status=$2, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $3;"
+	STEP_INSERT     = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6,$7);"
+	SNAPSHOT_INSERT = "INSERT INTO snapshopt (flowinstanceid, hostid, stepid, starttime, endtime, stepdata) VALUES ($1,$2,$3,$4,$5,$6);"
+
+	FlowState_UPSERT_RERUN_v1 = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId, startTime, endTime, status, rerunofflowinstanceid) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status,  starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;"
+	FlowState_UPSERT_RERUN_v2 = "INSERT INTO flowstate (flowInstanceId, userId, appName,appVersion, flowName, hostId, flowInput, flowOutput, rerunCount, startTime, endTime, status, rerunofflowinstanceid) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (flowinstanceid) DO UPDATE SET hostId = EXCLUDED.hostId, flowName = EXCLUDED.flowName, userId = EXCLUDED.userId, status = EXCLUDED.status, flowInput = EXCLUDED.flowInput, flowOutput = EXCLUDED.flowOutput, rerunCount = EXCLUDED.rerunCount,  starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime;"
+	UpdateFlowState_v1        = "UPDATE flowstate set endtime=$1,status=$2, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $3;"
+	UpdateFlowState_v2        = "UPDATE flowstate set endtime=$1, status=$2, flowOutput=$3, executiontime=ROUND( ((EXTRACT(EPOCH FROM ($1 - starttime)))*1000) :: numeric , 3) where flowinstanceid = $4;"
 
 	UpsertSteps = "INSERT INTO steps (flowinstanceid, stepid, taskname, status, starttime, endtime, stepdata, subflowid, flowname, rerun) VALUES($1,$2,$3,$4,$5,$6,$7, $8, $9, $10) ON CONFLICT (flowinstanceid, stepid) DO UPDATE SET status = EXCLUDED.status, starttime=EXCLUDED.starttime,endtime= EXCLUDED.endtime,stepdata=EXCLUDED.stepdata;\n"
 	DeleteSteps = "DELETE from steps where flowinstanceid = $1 and CAST(stepid as INTEGER) >= $2"
 
-	UpsertAppState = "INSERT INTO appstate (userId, appName, persistenceenabled) VALUES($1,$2,$3) ON CONFLICT (userId, appName) DO UPDATE SET persistenceenabled = EXCLUDED.persistenceenabled ;\n"
+	UpsertAppState      = "INSERT INTO appstate (userId, appName, persistenceenabled) VALUES($1,$2,$3) ON CONFLICT (userId, appName) DO UPDATE SET persistenceenabled = EXCLUDED.persistenceenabled ;\n"
+	IncrementRerunCount = "UPDATE flowstate SET reruncount  = reruncount + 1 WHERE flowinstanceid = $1 RETURNING reruncount;"
 )
 
 type StatefulDB struct {
-	db *sql.DB
+	db        *sql.DB
+	dbDetails *DBDetails
 }
 
 func (s *StatefulDB) InsertFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats}
-	return s.insert(FlowState_UPSERT_RERUN, inputArgs)
+	var flowInputs, flowOutputs []byte
+	if flowState.FlowInputs == nil {
+		flowState.FlowInputs = make(map[string]interface{})
+	}
+	flowInputs, _ = json.Marshal(flowState.FlowInputs)
+
+	//if flowState.FlowOutputs != nil {
+	//	flowOutputs, _ = json.Marshal(flowState.FlowOutputs)
+	//}
+	if flowState.OriginalInstanceId != "" {
+		// update original instance Id and increment rerun count
+		if s.dbDetails.SmVersion == "2.0" {
+			_, err = s.update(IncrementRerunCount, []interface{}{flowState.OriginalInstanceId})
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if s.dbDetails.SmVersion == "1.0" {
+		inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowState.StartTime, flowState.EndTime, flowState.FlowStats, flowState.OriginalInstanceId}
+		return s.insert(FlowState_UPSERT_RERUN_v1, inputArgs)
+	}
+	inputArgs := []interface{}{flowState.FlowInstanceId, flowState.UserId, flowState.AppName, flowState.AppVersion, flowState.FlowName, flowState.HostId, flowInputs, flowOutputs, flowState.RerunCount, flowState.StartTime, flowState.EndTime, flowState.FlowStats, flowState.OriginalInstanceId}
+	return s.insert(FlowState_UPSERT_RERUN_v2, inputArgs)
+
 }
 
 func (s *StatefulDB) InsertAppState(appStatedata *metadata.Metadata) (results *ResultSet, err error) {
@@ -40,8 +69,21 @@ func (s *StatefulDB) InsertAppState(appStatedata *metadata.Metadata) (results *R
 }
 
 func (s *StatefulDB) UpdateFlowState(flowState *state.FlowState) (results *ResultSet, err error) {
-	inputArgs := []interface{}{flowState.EndTime, flowState.FlowStats, flowState.FlowInstanceId}
-	return s.insert(UpdateFlowState, inputArgs)
+	var flowOutputs []byte
+	//if flowState.FlowInputs != nil {
+	//	flowInputs, _ = json.Marshal(flowState.FlowInputs)
+	//}
+	if flowState.FlowOutputs != nil {
+		flowOutputs, _ = json.Marshal(flowState.FlowOutputs)
+	}
+
+	if s.dbDetails.SmVersion == "1.0" {
+		inputArgs := []interface{}{flowState.EndTime, flowState.FlowStats, flowState.FlowInstanceId}
+		return s.insert(UpdateFlowState_v1, inputArgs)
+	}
+	inputArgs := []interface{}{flowState.EndTime, flowState.FlowStats, flowOutputs, flowState.FlowInstanceId}
+	return s.insert(UpdateFlowState_v2, inputArgs)
+
 }
 
 func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err error) {
@@ -173,7 +215,7 @@ func (s *StatefulDB) delete(deleteSql string, inputArgs []interface{}) (results 
 	return UnmarshalRows(rows)
 }
 
-//GetStatement
+// GetStatement
 func (s *StatefulDB) getStepStatement(prepared string) (stmt *sql.Stmt, err error) {
 	preparedQueryCacheMutex.Lock()
 	defer preparedQueryCacheMutex.Unlock()
