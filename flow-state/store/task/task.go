@@ -13,7 +13,7 @@ import (
 
 type Task struct {
 	Id         string                 `json:"id"`
-	StepId     int                    `json:"stepId"`
+	StepId     int64                  `json:"stepId"`
 	SubflowId  int                    `json:"subflowId"`
 	Input      map[string]interface{} `json:"input,omitempty"`
 	Output     map[string]interface{} `json:"output,omitempty"`
@@ -91,7 +91,7 @@ func StepToTaskReady(step *state.Step, incluedReadyInput bool) ([]*Task, error) 
 	return nil, nil
 }
 
-func flowChangeToTask(stepId, subflowId int, flowChange *change.Flow, incluedReadyInput bool) (*Task, error) {
+func flowChangeToTask(stepId int64, subflowId int, flowChange *change.Flow, incluedReadyInput bool) (*Task, error) {
 	task := &Task{StepId: stepId}
 	task.SubflowId = subflowId
 	task.Id = flowChange.TaskId
@@ -108,7 +108,7 @@ func flowChangeToTask(stepId, subflowId int, flowChange *change.Flow, incluedRea
 					task.Input = t.Input
 					task.Status = convertTaskStatus(t.Status)
 				}
-			}else {
+			} else {
 				if t.Status == 40 || t.Status == 30 || t.Status == 100 {
 					task.Id = taskId
 					task.Input = t.Input
@@ -126,7 +126,7 @@ func flowChangeToTask(stepId, subflowId int, flowChange *change.Flow, incluedRea
 		}
 
 		for taskId, t := range flowChange.Tasks {
-			if incluedReadyInput  && task.Id == taskId {
+			if incluedReadyInput && task.Id == taskId {
 				if t.Status == 40 || t.Status == 30 || t.Status == 100 || t.Status == 20 {
 					task.Id = taskId
 					if len(t.Input) > 0 {
@@ -134,7 +134,7 @@ func flowChangeToTask(stepId, subflowId int, flowChange *change.Flow, incluedRea
 					}
 					task.Status = convertTaskStatus(t.Status)
 				}
-			}else {
+			} else {
 				if t.Status == 40 || t.Status == 30 || t.Status == 100 {
 					task.Id = taskId
 					if len(t.Input) > 0 {
