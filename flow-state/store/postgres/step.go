@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/project-flogo/core/data/coerce"
 	metadata2 "github.com/project-flogo/core/data/metadata"
@@ -996,7 +997,7 @@ func (s *StepStore) GetStepdataForActivity(flowId, stepid, taskname string) ([]*
 				if err != nil {
 					return nil, err
 				}
-				stepidInt, _ := strconv.Atoi(stepid)
+				stepidInt, _ := strconv.ParseInt(stepid, 10, 64)
 				taskArray[0].StepId = stepidInt // honour the stepid of starting of subflow
 				return taskArray, err
 			} else {

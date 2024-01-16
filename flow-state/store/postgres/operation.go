@@ -5,9 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/project-flogo/services/flow-state/store/metadata"
 	"strconv"
 	"strings"
+
+	"github.com/project-flogo/services/flow-state/store/metadata"
 
 	"github.com/project-flogo/flow/state"
 	task2 "github.com/project-flogo/services/flow-state/store/task"
@@ -116,7 +117,7 @@ func (s *StatefulDB) InsertSteps(step *state.Step) (results *ResultSet, err erro
 	return s.insert(UpsertSteps, inputArgs)
 }
 func (s *StatefulDB) DeleteSteps(flowId string, stepId string) (results *ResultSet, err error) {
-	intStepId, err := strconv.Atoi(stepId)
+	intStepId, err := strconv.ParseInt(stepId, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("Error while converting stepid to Int: ", err)
 	}
